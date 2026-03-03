@@ -68,64 +68,94 @@ const char index_html[] PROGMEM = R"rawliteral(
     <p>
     <span id="IDValue">Click this button to start searching servos.</span>
     <p>
-    <label align="center"><button class="button" onclick="toggleCheckbox(9, 0, 0, 0);">Start Searching</button></label>
+    <label align="center"><button class="button" onclick="send_command(cmd_type.scan_servos, 0);">Start Searching</button></label>
     <p>
-    <span id="STSValue">Single servo infomation.</span>
+    <span id="STSValue">Single servo information.</span>
     <p>
-        <label align="center"><button class="button" onclick="toggleCheckbox(0, 1, 0, 0);">ID Select+</button></label>
-        <label align="center"><button class="button" onclick="toggleCheckbox(0, -1, 0, 0);">ID Select-</button></label>
+        <label align="center"><button class="button" onclick="send_command(cmd_type.select_servo, select_dir.next);">ID Select+</button></label>
+        <label align="center"><button class="button" onclick="send_command(cmd_type.select_servo, select_dir.prev);">ID Select-</button></label>
     <p>
-        <label align="center"><button class="button" onclick="toggleCheckbox(1, 1, 0, 0);">Middle</button></label>
-        <label align="center"><button class="button" onclick="toggleCheckbox(1, 2, 0, 0);">Stop</button></label>
-        <label align="center"><button class="button" onclick="toggleCheckbox(1, 3, 0, 0);">Release</button></label>
-        <label align="center"><button class="button" onclick="toggleCheckbox(1, 4, 0, 0);">Torque</button></label>
+        <label align="center"><button class="button" onclick="send_command(cmd_type.servo_control, servo_cmd.middle);">Middle</button></label>
+        <label align="center"><button class="button" onclick="send_command(cmd_type.servo_control, servo_cmd.stop);">Stop</button></label>
+        <label align="center"><button class="button" onclick="send_command(cmd_type.servo_control, servo_cmd.release);">Release</button></label>
+        <label align="center"><button class="button" onclick="send_command(cmd_type.servo_control, servo_cmd.torque);">Torque</button></label>
     <p>
-        <label align="center"><button class="button" onmousedown="toggleCheckbox(1, 5, 0, 0);" ontouchstart="toggleCheckbox(1, 5, 0, 0);" onmouseup="toggleCheckbox(1, 2, 0, 0);" ontouchend="toggleCheckbox(1, 2, 0, 0);">Position+</button></label>
-        <label align="center"><button class="button" onmousedown="toggleCheckbox(1, 6, 0, 0);" ontouchstart="toggleCheckbox(1, 6, 0, 0);" onmouseup="toggleCheckbox(1, 2, 0, 0);" ontouchend="toggleCheckbox(1, 2, 0, 0);">Position-</button></label>
+        <label align="center"><button class="button" onmousedown="send_command(cmd_type.servo_control, servo_cmd.position_inc);" ontouchstart="send_command(cmd_type.servo_control, servo_cmd.position_inc);" onmouseup="send_command(cmd_type.servo_control, servo_cmd.stop);" ontouchend="send_command(cmd_type.servo_control, servo_cmd.stop);">Position+</button></label>
+        <label align="center"><button class="button" onmousedown="send_command(cmd_type.servo_control, servo_cmd.position_dec);" ontouchstart="send_command(cmd_type.servo_control, servo_cmd.position_dec);" onmouseup="send_command(cmd_type.servo_control, servo_cmd.stop);" ontouchend="send_command(cmd_type.servo_control, servo_cmd.stop);">Position-</button></label>
     <p>
-        <label align="center"><button class="button" onclick="toggleCheckbox(1, 7, 0, 0);">Speed+</button></label>
-        <label align="center"><button class="button" onclick="toggleCheckbox(1, 8, 0, 0);">Speed-</button></label>
+        <label align="center"><button class="button" onclick="send_command(cmd_type.servo_control, servo_cmd.speed_inc);">Speed+</button></label>
+        <label align="center"><button class="button" onclick="send_command(cmd_type.servo_control, servo_cmd.speed_dec);">Speed-</button></label>
     <p>
-        <label align="center"><button class="button" onclick="toggleCheckbox(1, 9, 0, 0);">ID to Set+</button></label>
-        <label align="center"><button class="button" onclick="toggleCheckbox(1, 10, 0, 0);">ID to Set-</button></label>
+        <label align="center"><button class="button" onclick="send_command(cmd_type.servo_control, servo_cmd.id_to_set_inc);">ID to Set+</button></label>
+        <label align="center"><button class="button" onclick="send_command(cmd_type.servo_control, servo_cmd.id_to_set_dec);">ID to Set-</button></label>
     <p>
-        <label align="center"><button class="button" onclick="setMiddle();">Set Middle Position</button></label>
-        <label align="center"><button class="button" onclick="setNewID();">Set New ID</button></label>
+        <label align="center"><button class="button" onclick="set_middle();">Set Middle Position</button></label>
+        <label align="center"><button class="button" onclick="set_new_id();">Set New ID</button></label>
     <p>
-        <label align="center"><button class="button" onclick="setServoMode();">Set Servo Mode</button></label>
-        <label align="center"><button class="button" onclick="setStepperMode();">Set Motor Mode</button></label>
+        <label align="center"><button class="button" onclick="set_servo_mode();">Set Servo Mode</button></label>
+        <label align="center"><button class="button" onclick="set_stepper_mode();">Set Motor Mode</button></label>
     <p>
-        <label align="center"><button class="button" id="serialForwarding" onclick="serialForwarding();">Start Serial Forwarding</button></label>
+        <label align="center"><button class="button" id="serial_forwarding" onclick="serial_forwarding();">Start Serial Forwarding</button></label>
     <p>
-        <label align="center"><button class="button" onclick="setRole(0);">Normal</button></label>
-        <label align="center"><button class="button" onclick="setRole(1);">Leader</button></label>
-        <label align="center"><button class="button" onclick="setRole(2);">Follower</button></label>
+        <label align="center"><button class="button" onclick="set_role(0);">Normal</button></label>
+        <label align="center"><button class="button" onclick="set_role(1);">Leader</button></label>
+        <label align="center"><button class="button" onclick="set_role(2);">Follower</button></label>
     <p>
-        <label align="center"><button class="button" onclick="toggleCheckbox(1, 20, 0, 0);">RainbowON</button></label>
-        <label align="center"><button class="button" onclick="toggleCheckbox(1, 21, 0, 0);">RainbowOFF</button></label>
+        <label align="center"><button class="button" onclick="send_command(cmd_type.servo_control, servo_cmd.rainbow_on);">RainbowON</button></label>
+        <label align="center"><button class="button" onclick="send_command(cmd_type.servo_control, servo_cmd.rainbow_off);">RainbowOFF</button></label>
     <script>
-        serialForwardStatus = false;
+        const cmd_type = Object.freeze({
+            select_servo:  0,
+            servo_control: 1,
+            scan_servos:   9,
+        });
 
-        function toggleCheckbox(inputT, inputI, inputA, inputB) {
+        const servo_cmd = Object.freeze({
+            middle:          1,
+            stop:            2,
+            release:         3,
+            torque:          4,
+            position_inc:    5,
+            position_dec:    6,
+            speed_inc:       7,
+            speed_dec:       8,
+            id_to_set_inc:   9,
+            id_to_set_dec:  10,
+            set_middle:     11,
+            set_servo_mode: 12,
+            set_motor_mode: 13,
+            serial_fwd_on:  14,
+            serial_fwd_off: 15,
+            set_new_id:     16,
+            role_normal:    17,
+            role_leader:    18,
+            role_follower:  19,
+            rainbow_on:     20,
+            rainbow_off:    21,
+        });
+
+        const select_dir = Object.freeze({
+            next:  1,
+            prev: -1,
+        });
+
+        var serial_forward_status = false;
+
+        function send_command(type, instruction) {
             var xhr = new XMLHttpRequest();
-            xhr.open("GET", "cmd?inputT="+inputT+"&inputI="+inputI+"&inputA="+inputA+"&inputB="+inputB, true);
-            xhr.send();
-        }
-
-        function ctrlMode() {
-            xhr.open("GET", "ctrl", true);
+            xhr.open("GET", "cmd?inputT=" + type + "&inputI=" + instruction + "&inputA=0&inputB=0", true);
             xhr.send();
         }
 
         setInterval(function() {
-          getData();
+          get_data();
         }, 300);
 
         setInterval(function() {
-          getServoID();
+          get_servo_id();
         }, 1500);
 
-        function getData() {
+        function get_data() {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
@@ -137,7 +167,7 @@ const char index_html[] PROGMEM = R"rawliteral(
             xhttp.send();
         }
 
-        function getServoID() {
+        function get_servo_id() {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function() {
                 if (this.readyState == 4 && this.status == 200) {
@@ -149,70 +179,61 @@ const char index_html[] PROGMEM = R"rawliteral(
             xhttp.send();
         }
 
-        function setRole(modeNum){
-            if(modeNum == 0){
-                var r=confirm("Set the role as Normal. Dev won't send or receive data via ESP-NOW.");
-                if(r==true){
-                    toggleCheckbox(1, 17, 0, 0);
+        function set_role(mode_num) {
+            if (mode_num == 0) {
+                if (confirm("Set the role as Normal. Dev won't send or receive data via ESP-NOW.")) {
+                    send_command(cmd_type.servo_control, servo_cmd.role_normal);
                 }
             }
-            if(modeNum == 1){
-                var r=confirm("Set the role as Leader. Dev will send data via ESP-NOW.");
-                if(r==true){
-                    toggleCheckbox(1, 18, 0, 0);
+            if (mode_num == 1) {
+                if (confirm("Set the role as Leader. Dev will send data via ESP-NOW.")) {
+                    send_command(cmd_type.servo_control, servo_cmd.role_leader);
                 }
             }
-            if(modeNum == 2){
-                var r=confirm("Set the role as Follower. Dev will receive data via ESP-NOW.");
-                if(r==true){
-                    toggleCheckbox(1, 19, 0, 0);
+            if (mode_num == 2) {
+                if (confirm("Set the role as Follower. Dev will receive data via ESP-NOW.")) {
+                    send_command(cmd_type.servo_control, servo_cmd.role_follower);
                 }
             }
         }
 
-        function setMiddle(){
-            var r=confirm("The middle position of the active servo will be set.");
-            if(r==true){
-                toggleCheckbox(1, 11, 0, 0);
+        function set_middle() {
+            if (confirm("The middle position of the active servo will be set.")) {
+                send_command(cmd_type.servo_control, servo_cmd.set_middle);
             }
         }
 
-        function setServoMode(){
-            var r=confirm("The active servo will be set as servoMode.");
-            if(r==true){
-                toggleCheckbox(1, 12, 0, 0);
+        function set_servo_mode() {
+            if (confirm("The active servo will be set as servoMode.")) {
+                send_command(cmd_type.servo_control, servo_cmd.set_servo_mode);
             }
         }
 
-        function setStepperMode(){
-            var r=confirm("The active servo will be set as motorMode.");
-            if(r==true){
-                toggleCheckbox(1, 13, 0, 0);
+        function set_stepper_mode() {
+            if (confirm("The active servo will be set as motorMode.")) {
+                send_command(cmd_type.servo_control, servo_cmd.set_motor_mode);
             }
         }
 
-        function setNewID(){
-            var r=confirm("A new ID of the active servo will be set.");
-            if(r==true){
-                toggleCheckbox(1, 16, 0, 0);
+        function set_new_id() {
+            if (confirm("A new ID of the active servo will be set.")) {
+                send_command(cmd_type.servo_control, servo_cmd.set_new_id);
             }
         }
 
-        function serialForwarding(){
-            if(!serialForwardStatus){
-                var r=confirm("Do you want to start serial forwarding?");
-                if(r){
-                    toggleCheckbox(1, 14, 0, 0);
-                    serialForwardStatus = true;
-                    document.getElementById("serialForwarding").innerHTML = "Stop Serial Forwarding";
+        function serial_forwarding() {
+            if (!serial_forward_status) {
+                if (confirm("Do you want to start serial forwarding?")) {
+                    send_command(cmd_type.servo_control, servo_cmd.serial_fwd_on);
+                    serial_forward_status = true;
+                    document.getElementById("serial_forwarding").innerHTML = "Stop Serial Forwarding";
                 }
             }
-            else{
-                var r=confirm("Do you want to stop serial forwarding?");
-                if(r){
-                    toggleCheckbox(1, 15, 0, 0);
-                    serialForwardStatus = false;
-                    document.getElementById("serialForwarding").innerHTML = "Start Serial Forwarding";
+            else {
+                if (confirm("Do you want to stop serial forwarding?")) {
+                    send_command(cmd_type.servo_control, servo_cmd.serial_fwd_off);
+                    serial_forward_status = false;
+                    document.getElementById("serial_forwarding").innerHTML = "Start Serial Forwarding";
                 }
             }
         }
