@@ -65,7 +65,7 @@ void pingAll(bool searchCommand){
     searchFinished = false;
     int PingStatus;
     for(int i = 0; i <= MAX_ID; i++){
-      servo_bus.set_servo_type(currentServoType());
+      servo_bus.set_servo_type(active_servo->type());
       auto PingResult = servo_bus.ping(i);
 
       display.clearDisplay();

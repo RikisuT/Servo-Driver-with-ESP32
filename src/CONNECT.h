@@ -46,69 +46,53 @@ int rangeCtrl(int rawInput, int minInput, int maxInput){
 
 
 void activeCtrl(int cmdInput){
-  Serial.printf("activeCtrl: cmd=%d mode=%d servoType=%d\n", cmdInput, modeRead[listID[activeNumInList]], SERVO_TYPE_SELECT);
+  byte id = listID[activeNumInList];
+  int mode = modeRead[id];
+  Serial.printf("activeCtrl: cmd=%d mode=%d servoType=%d\n", cmdInput, mode, SERVO_TYPE_SELECT);
+
   switch(cmdInput){
-    case 1:servoWritePosEx(listID[activeNumInList], ServoDigitalMiddle, activeServoSpeed, ServoInitACC);break;
-    case 2:
-      if(modeRead[listID[activeNumInList]] == 0) {
-        servoStop(listID[activeNumInList]);
-      }
-      else if(modeRead[listID[activeNumInList]] == 3){
-        servoWritePos(listID[activeNumInList], 0, 0, 0);
+    case 1:  // Middle
+      servoWritePosEx(id, ServoDigitalMiddle, activeServoSpeed, ServoInitACC);
+      break;
+    case 2:  // Stop
+      if(mode == 0) {
+        servoStop(id);
+      } else if(mode == 3) {
+        servoForId(id)->set_motor_speed(0);
       }
       break;
-    case 3:servoTorque(listID[activeNumInList],0);Torque_List[activeNumInList] = false;break;
-    case 4:servoTorque(listID[activeNumInList],1);Torque_List[activeNumInList] = true;break;
-    case 5:
-      if(modeRead[listID[activeNumInList]] == 0){
-        if(SERVO_TYPE_SELECT == 1){
-          servoWritePosEx(listID[activeNumInList], ServoDigitalRange - 1, activeServoSpeed, ServoInitACC);
-        }
-        else if(SERVO_TYPE_SELECT == 2){
-          servoWritePosEx(listID[activeNumInList], ServoDigitalRange - MAX_MIN_OFFSET, activeServoSpeed, ServoInitACC);
-        }
-      }
-
-
-      else if(modeRead[listID[activeNumInList]] == 3){
-        if(SERVO_TYPE_SELECT == 1){
-          servoWritePosEx(listID[activeNumInList], 10000, activeServoSpeed, ServoInitACC);
-        }
-        else if(SERVO_TYPE_SELECT == 2){
-          servoWritePos(listID[activeNumInList], 0, rangeCtrl(activeServoSpeed,200,999), 0);
-        }
+    case 3:  // Release (torque off)
+      servoTorque(id, 0);
+      Torque_List[activeNumInList] = false;
+      break;
+    case 4:  // Torque on
+      servoTorque(id, 1);
+      Torque_List[activeNumInList] = true;
+      break;
+    case 5:  // Position+ / Motor CW
+      if(mode == 0) {
+        servoWritePosEx(id, ServoDigitalRange - MAX_MIN_OFFSET, activeServoSpeed, ServoInitACC);
+      } else if(mode == 3) {
+        servoForId(id)->set_motor_speed(activeServoSpeed);
       }
       break;
-    case 6:
-      if(modeRead[listID[activeNumInList]] == 0){
-        if(SERVO_TYPE_SELECT == 1){
-          servoWritePosEx(listID[activeNumInList], 0, activeServoSpeed, ServoInitACC);
-        }
-        else if(SERVO_TYPE_SELECT == 2){
-          servoWritePosEx(listID[activeNumInList], MAX_MIN_OFFSET, activeServoSpeed, ServoInitACC);
-        }
-      }
-
-
-      else if(modeRead[listID[activeNumInList]] == 3){
-        if(SERVO_TYPE_SELECT == 1){
-          servoWritePosEx(listID[activeNumInList], -10000, activeServoSpeed, ServoInitACC);
-        }
-        else if(SERVO_TYPE_SELECT == 2){
-          servoWritePos(listID[activeNumInList], 0, rangeCtrl(activeServoSpeed,200,999)+1024, 0);
-        }
+    case 6:  // Position- / Motor CCW
+      if(mode == 0) {
+        servoWritePosEx(id, MAX_MIN_OFFSET, activeServoSpeed, ServoInitACC);
+      } else if(mode == 3) {
+        servoForId(id)->set_motor_speed(-activeServoSpeed);
       }
       break;
     case 7:activeSpeed(100);break;
     case 8:activeSpeed(-100);break;
     case 9:servotoSet += 1;if(servotoSet > 250){servotoSet = 0;}break;
     case 10:servotoSet -= 1;if(servotoSet < 0){servotoSet = 0;}break;
-    case 11:setMiddle(listID[activeNumInList]);break;
-    case 12:setMode(listID[activeNumInList], 0);break;
-    case 13:setMode(listID[activeNumInList], 3);break;
+    case 11:setMiddle(id);break;
+    case 12:setMode(id, 0);break;
+    case 13:setMode(id, 3);break;
     case 14:SERIAL_FORWARDING = true;break;
     case 15:SERIAL_FORWARDING = false;break;
-    case 16:setID(listID[activeNumInList], servotoSet);break;
+    case 16:setID(id, servotoSet);break;
 
     case 17:DEV_ROLE = 0;break;
     case 18:DEV_ROLE = 1;break;
