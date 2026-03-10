@@ -140,12 +140,19 @@ function doScan(){
   if(scanning) return; scanning=true;
   document.getElementById('scanBtn').textContent='Scanning\u2026';
   api('/api/rescan',function(){
-    setTimeout(function(){
-      api('/api/scan',function(d){
-        if(d.servos){servos=d.servos.map(function(s){var o=servoById(s.id);return mk(s,o)});renderAll();startPolling()}
-        scanning=false;document.getElementById('scanBtn').textContent='Scan';setConn(true);
-      });
-    },3000);
+    pollScanDone();
+  });
+}
+function pollScanDone(){
+  api('/api/scan_status',function(st){
+    if(st.scanning || !st.finished){
+      setTimeout(pollScanDone,500);
+      return;
+    }
+    api('/api/scan',function(d){
+      if(d.servos){servos=d.servos.map(function(s){var o=servoById(s.id);return mk(s,o)});renderAll();startPolling()}
+      scanning=false;document.getElementById('scanBtn').textContent='Scan';setConn(true);
+    });
   });
 }
 function initialLoad(){

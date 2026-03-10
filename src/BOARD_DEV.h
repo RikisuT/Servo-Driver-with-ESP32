@@ -139,6 +139,11 @@ void boardDevInit(){
 void InfoUpdateThreading(void *pvParameter){
   unsigned long lastScreen = 0;
   while(1){
+    // Handle rescan requests from the web UI
+    if(searchCmd){
+      pingAll(true);
+    }
+
     // Poll telemetry for all detected servos
     for(int i = 0; i < searchNum; i++){
       getFeedBack(listID[i]);

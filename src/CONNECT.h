@@ -232,6 +232,15 @@ void webCtrlServer(){
     server.send(200, "application/json", "{\"ok\":true,\"message\":\"scan started\"}");
   });
 
+  server.on("/api/scan_status", [](){
+    String json = "{\"scanning\":";
+    json += searchedStatus ? "true" : "false";
+    json += ",\"finished\":";
+    json += searchFinished ? "true" : "false";
+    json += "}";
+    server.send(200, "application/json", json);
+  });
+
   server.on("/api/torque", [](){
     if(!server.hasArg("id") || !server.hasArg("enable")){
       server.send(400, "application/json", "{\"error\":\"missing id or enable\"}");
