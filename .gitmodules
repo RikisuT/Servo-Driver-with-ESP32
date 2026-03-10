@@ -1,0 +1,3 @@
+[submodule "lib/nerd-bus-servo"]
+	path = lib/nerd-bus-servo
+	url = https://github.com/berickson/nerd-bus-servo.git
