@@ -56,12 +56,21 @@ void screenUpdate(){
 void pingAll(bool searchCommand){
   if(searchCommand){
     RGBcolor(0, 255, 64);
+
+    // Clean up old servo objects
+    for(int i = 0; i < 253; i++){
+      if(servos[i]){
+        delete servos[i];
+        servos[i] = nullptr;
+      }
+    }
+
     searchNum = 0;
     searchedStatus = true;
     searchFinished = false;
-    int PingStatus;
     for(int i = 0; i <= MAX_ID; i++){
-      servo_bus.set_servo_type(active_servo->type());
+      // Either servo type works for ping
+      servo_bus.set_servo_type(ServoBusApi::ServoType::STS);
       auto PingResult = servo_bus.ping(i);
 
       display.clearDisplay();
@@ -73,21 +82,43 @@ void pingAll(bool searchCommand){
       display.print(F("-Ping:"));display.println(i);
       display.print(F("Detected:"));
 
-      for(int i = 0; i < searchNum; i++){
-        display.print(listID[i]);display.print(F(" "));
+      for(int j = 0; j < searchNum; j++){
+        display.print(listID[j]);display.print(F(" "));
       }
       display.display();
 
       if(PingResult.has_value()){
+        // Infer servo type (SC vs STS) and create typed object
+        auto inferredType = Servo::infer_servo_type(&servo_bus, i);
+        if(inferredType){
+          if(*inferredType == ServoBusApi::ServoType::SC){
+            servos[i] = new SCServo(&servo_bus, i);
+          } else {
+            servos[i] = new STSServo(&servo_bus, i);
+          }
+        } else {
+          // Fallback to configured default if inference fails
+          Serial.printf("Servo %d: type inference failed, using default\n", i);
+          if(SERVO_TYPE_SELECT == 1){
+            servos[i] = new STSServo(&servo_bus, i);
+          } else {
+            servos[i] = new SCServo(&servo_bus, i);
+          }
+        }
+        servos[i]->read_info();  // Load angle limits from EEPROM
+
+        const char* typeStr = (servos[i]->type() == ServoBusApi::ServoType::STS) ? "STS" : "SC";
+        Serial.printf("Servo %d: %s (range %d-%d)\n", i, typeStr,
+                       servos[i]->min_encoder_angle(), servos[i]->max_encoder_angle());
+
         listID[searchNum] = i;
         searchNum++;
       }
-      // delay(1);
     }
-    for(int i = 0; i< searchNum; i++){
+    for(int i = 0; i < searchNum; i++){
       Serial.print(listID[i]);Serial.print(" ");
-      Serial.println("");
     }
+    Serial.println();
     searchedStatus = false;
     searchFinished = true;
     searchCmd      = false;
@@ -107,7 +138,10 @@ void boardDevInit(){
 
 void InfoUpdateThreading(void *pvParameter){
   while(1){
-    getFeedBack(listID[activeNumInList]);
+    // Poll telemetry for all detected servos
+    for(int i = 0; i < searchNum; i++){
+      getFeedBack(listID[i]);
+    }
     getWifiStatus();
     screenUpdate();
     delay(threadingInterval);
@@ -125,6 +159,6 @@ void clientThreading(void *pvParameter){
 
 
 void threadInit(){
-  xTaskCreatePinnedToCore(&InfoUpdateThreading, "InfoUpdate", 4000, NULL, 5, &ScreenUpdateHandle, ARDUINO_RUNNING_CORE);
-  xTaskCreate(&clientThreading, "Client", 4000, NULL, 5, &ClientCmdHandle);
+  xTaskCreatePinnedToCore(&InfoUpdateThreading, "InfoUpdate", 8192, NULL, 5, &ScreenUpdateHandle, ARDUINO_RUNNING_CORE);
+  xTaskCreate(&clientThreading, "Client", 8192, NULL, 5, &ClientCmdHandle);
 }

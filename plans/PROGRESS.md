@@ -4,6 +4,22 @@
 > Each phase may be handled by a different agent. Update this doc as you complete work.  
 > Reference: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for full specs, [PROTOCOL.md](PROTOCOL.md) for codebase reference, [servo-driver-ui.jsx](servo-driver-ui.jsx) for the React design prototype.
 
+## ⚠️ Testing Policy — ALL AGENTS READ THIS
+
+**Always have the user test on real hardware between implementation steps.** Do not chain multiple implementation steps without a manual test checkpoint.
+
+After each sub-task or logical group of sub-tasks:
+1. Ensure the build succeeds (user runs PlatformIO Build task from VS Code GUI)
+2. Propose specific, simple by-hand tests the user can run on the board
+3. Wait for the user to report results before proceeding
+
+Tests should be concrete and quick, e.g.:
+- "Flash the board, open Serial Monitor, power cycle — confirm you see `Servo 11: STS (range 0-4095)` in the log"
+- "Open `http://192.168.4.1/api/scan` in your browser — confirm you see JSON with your servo IDs"
+- "Drag the slider to 2048 — confirm the servo physically moves"
+
+Never skip testing to "save time." A 30-second hardware test catches issues that no amount of code review can.
+
 ---
 
 ## Pre-Work ✅ COMPLETE
@@ -85,10 +101,24 @@ This is the user's own library that provides a clean abstraction over both SC an
 - [x] **1.0d** Update `CONNECT.h`: replaced all `st.WritePosEx()` / `st.WritePos()` calls with `servoWritePosEx()` / `servoWritePos()` wrappers
 - [x] **1.0e** Update `BOARD_DEV.h`: replaced `st.Ping()` with `servo_bus.ping()` (returns `std::optional`)
 - [x] **1.0f** Verified compilation: `pio run` succeeds (RAM 15.4%, Flash 64.3%)
-- [ ] **1.0g** Update `pingAll()` in `BOARD_DEV.h`: after ping, call `Servo::infer_servo_type()` to detect type, construct `SCServo` or `STSServo` per ID
-- [ ] **1.0h** Add JSON API endpoint: `GET /api/scan` → returns `{"servos": [{"id":11, "type":"SC", "range":1023}, ...]}`
-- [ ] **1.0i** Add JSON API endpoint: `GET /api/status_all` → returns array of servo telemetry objects (pos, load, voltage, temp, current, mode, torque, type, range)
-- [ ] **1.0j** Add JSON API endpoint: `POST /api/setpos` → accepts `id`, `pos`, `speed` params, calls `servo->move_to_encoder_angle()` or `write_position()`
+- [x] **1.0g** Update `pingAll()` in `BOARD_DEV.h`: after ping, call `Servo::infer_servo_type()` to detect type, construct `SCServo` or `STSServo` per ID. Also: telemetry thread now polls ALL detected servos; task stack sizes bumped to 8KB; `Torque_List` re-indexed by servo ID.
+- [x] **1.0h** Add JSON API endpoint: `GET /api/scan` → returns `{"servos": [{"id":11, "type":"STS", "range":4095, "middle":2047}, ...]}`
+- [x] **1.0i** Add JSON API endpoint: `GET /api/status_all` → returns per-servo telemetry (pos, speed, load, voltage, temp, current, mode, torque, range)
+- [x] **1.0j** Add JSON API endpoints: `GET /api/setpos?id=X&pos=Y&speed=Z` and `GET /api/rescan`
+- [x] **1.0k** Verified compilation: `pio run` succeeds (RAM 15.7%, Flash 64.0%)
+- [ ] **1.0-TEST** Manual hardware test (see checklist below)
+
+**🧪 Manual Test Checkpoint — 1.0g-j (MUST DO BEFORE 1.1):**
+
+1. Flash the board (Upload and Monitor)
+2. Open Serial Monitor — on boot you should see lines like:
+   - `Servo 11: STS (range 0-4095)` (or `SC (range 0-1023)`) for each detected servo
+3. Connect your phone/laptop to the ESP32 WiFi AP (`ESP32_DEV` / `12345678`)
+4. Open `http://192.168.4.1/api/scan` in browser — confirm JSON with your servo IDs, types, and ranges
+5. Open `http://192.168.4.1/api/status_all` — confirm telemetry JSON (pos, voltage, temp should be nonzero for powered servos)
+6. Open `http://192.168.4.1/api/setpos?id=YOUR_ID&pos=2048&speed=500` — confirm the servo physically moves
+7. Refresh `/api/status_all` — confirm `pos` updated to near 2048
+8. Open `http://192.168.4.1/api/rescan` — confirm `{"ok":true}`, then re-check `/api/scan`
 - [ ] **1.1** New HTML/CSS: dark theme, card layout, scan button, card rendering from JS (adapts slider range per servo type)
 - [ ] **1.2** Position slider + direct text input + jog buttons (servo mode) — range adapts to SC 0–1023 or STS 0–4095
 - [ ] **1.3** Jog-only mode for motor-mode servos

@@ -24,23 +24,30 @@ int   MaxSpeed_X;
 int   ServoInitSpeed;
 int   MAX_MIN_OFFSET = 30;
 
-// The polymorphic servo used for all operations.
-// Created once in servoInit(), used everywhere else.
-// Callers that need a specific servo ID use servoForId(id).
-SCServo  sc_servo_instance(&servo_bus, 0);
-STSServo sts_servo_instance(&servo_bus, 0);
-Servo*   active_servo = nullptr;  // points to whichever type is configured
+// Per-servo polymorphic pointers, allocated during scan.
+// servos[id] is non-null for detected servos, null otherwise.
+Servo* servos[253] = {nullptr};
 
-// Helper: get a Servo* with a temporary ID override for bus operations.
-// The servo_bus is a shared resource, so this just re-binds the ID.
-// NOTE: Not safe for concurrent use — fine for this single-threaded control layer.
+// Fallback instances for servos not yet typed (before scan completes)
+SCServo  sc_servo_fallback(&servo_bus, 0);
+STSServo sts_servo_fallback(&servo_bus, 0);
+
+// active_servo: default type for un-typed operations
+Servo*   active_servo = nullptr;
+
+// Get the Servo* for a given ID.
+// Returns the typed servo from the servos[] array if available,
+// otherwise falls back to the global default with the given ID.
 inline Servo* servoForId(uint8_t id) {
+  if (servos[id]) return servos[id];
+  // Fallback for untyped servos (before scan or if inference failed)
   if (SERVO_TYPE_SELECT == 1) {
-    sts_servo_instance = STSServo(&servo_bus, id);
+    sts_servo_fallback = STSServo(&servo_bus, id);
+    return &sts_servo_fallback;
   } else {
-    sc_servo_instance = SCServo(&servo_bus, id);
+    sc_servo_fallback = SCServo(&servo_bus, id);
+    return &sc_servo_fallback;
   }
-  return active_servo;
 }
 
 
@@ -75,7 +82,7 @@ float linkageBuffer[50];
 
 void servoWritePosEx(byte id, s16 position, u16 speed, u8 acc) {
   auto* s = servoForId(id);
-  if (SERVO_TYPE_SELECT == 1 && acc > 0) {
+  if (s->type() == ServoBusApi::ServoType::STS && acc > 0 && s->info_loaded()) {
     static_cast<STSServo*>(s)->move_to_encoder_angle_with_accel(
         (uint16_t)abs(position) | (position < 0 ? (1 << 15) : 0), speed, acc);
   } else {
@@ -115,6 +122,9 @@ void getFeedBack(byte servoID) {
 
   auto mode = s->read_mode();
   if (mode) modeRead[servoID] = *mode;
+
+  auto torq = s->is_torque_enabled();
+  if (torq) Torque_List[servoID] = *torq;
 }
 
 
@@ -133,7 +143,7 @@ void servoInit() {
     ServoMaxSpeed      = 4000;
     MaxSpeed_X         = 4000;
     ServoInitSpeed     = 2000;
-    active_servo = &sts_servo_instance;
+    active_servo = &sts_servo_fallback;
     servo_bus.set_servo_type(ServoBusApi::ServoType::STS);
   } else {
     ServoDigitalRange  = 1023.0;
@@ -143,11 +153,11 @@ void servoInit() {
     ServoMaxSpeed      = 1500;
     MaxSpeed_X         = 1500;
     ServoInitSpeed     = 1500;
-    active_servo = &sc_servo_instance;
+    active_servo = &sc_servo_fallback;
     servo_bus.set_servo_type(ServoBusApi::ServoType::SC);
   }
 
-  for (int i = 0; i < MAX_ID; i++) {
+  for (int i = 0; i < 253; i++) {
     Torque_List[i] = true;
   }
 }
