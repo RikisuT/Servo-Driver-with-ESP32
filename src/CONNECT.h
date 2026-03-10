@@ -232,6 +232,24 @@ void webCtrlServer(){
     server.send(200, "application/json", "{\"ok\":true,\"message\":\"scan started\"}");
   });
 
+  server.on("/api/torque", [](){
+    if(!server.hasArg("id") || !server.hasArg("enable")){
+      server.send(400, "application/json", "{\"error\":\"missing id or enable\"}");
+      return;
+    }
+    int id = server.arg("id").toInt();
+    int enable = server.arg("enable").toInt();
+
+    if(id < 0 || id > 252 || !servos[id]){
+      server.send(404, "application/json", "{\"error\":\"servo not found\"}");
+      return;
+    }
+
+    servoTorque(id, enable);
+    Torque_List[id] = (enable != 0);
+    server.send(200, "application/json", "{\"ok\":true}");
+  });
+
   // Start server
   server.begin();
   Serial.println("Server Starts.");
