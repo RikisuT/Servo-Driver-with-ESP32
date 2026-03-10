@@ -137,15 +137,20 @@ void boardDevInit(){
 
 
 void InfoUpdateThreading(void *pvParameter){
+  unsigned long lastScreen = 0;
   while(1){
     // Poll telemetry for all detected servos
     for(int i = 0; i < searchNum; i++){
       getFeedBack(listID[i]);
     }
-    getWifiStatus();
-    screenUpdate();
+    // Update screen/wifi at a slower rate (every 500ms)
+    unsigned long now = millis();
+    if(now - lastScreen > 500){
+      getWifiStatus();
+      screenUpdate();
+      lastScreen = now;
+    }
     delay(threadingInterval);
-    pingAll(searchCmd);
   }
 }
 

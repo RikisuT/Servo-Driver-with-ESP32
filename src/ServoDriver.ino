@@ -37,7 +37,7 @@ byte   WIFI_MODE;
 int    WIFI_RSSI;
 
 // set the interval of the threading.
-#define threadingInterval 600
+#define threadingInterval 50
 #define clientInterval    10
 
 #if CONFIG_FREERTOS_UNICORE
