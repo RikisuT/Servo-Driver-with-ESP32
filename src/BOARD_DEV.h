@@ -26,9 +26,13 @@ void screenUpdate(){
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(0,0);
   // Row1.
-  display.print(F("MAC:"));display.println(MAC_ADDRESS);
+  display.println(IP_ADDRESS);
   // Row2.
-  display.print(F("V:"));display.print(float(voltageRead[listID[activeNumInList]])/10);display.print(F(" "));display.println(IP_ADDRESS);
+  display.print(float(voltageRead[listID[activeNumInList]])/10);display.print(F("V"));
+  display.print(F(" "));
+  if(WIFI_MODE == 1){display.println(AP_SSID);}
+  else if(WIFI_MODE == 2){display.println(STA_SSID);}
+  else if(WIFI_MODE == 3){display.print(F("TRY:"));display.println(STA_SSID);}
   // Row3.
   display.print(F("MODE:"));
 
