@@ -37,7 +37,7 @@ void screenUpdate(){
   else if(DEV_ROLE == 0){display.print(F("N"));}
 
   if(WIFI_MODE == 1){display.print(F(" AP "));display.println(AP_SSID);}
-  else if(WIFI_MODE == 2){display.print(F(" STA "));display.print(F("RSSI"));display.println(WIFI_RSSI);}
+  else if(WIFI_MODE == 2){display.print(F(" STA "));display.println(STA_SSID);}
   else if(WIFI_MODE == 3){display.print(F(" TRY:"));display.print(STA_SSID);display.println(F(""));}
 
   // Row4.

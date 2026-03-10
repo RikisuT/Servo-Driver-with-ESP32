@@ -2,9 +2,9 @@
 const char* AP_SSID = "ESP32_DEV";
 const char* AP_PWD  = "12345678";
 
-// WIFI_STA settings.
-const char* STA_SSID = "OnePlus 8";
-const char* STA_PWD  = "40963840";
+// WIFI_STA settings — kept out of source control.
+// Copy wifi_credentials.h.example to wifi_credentials.h and fill in your values.
+#include "wifi_credentials.h"
 
 // the MAC address of the device you want to ctrl.
 uint8_t broadcastAddress[] = {0x08, 0x3A, 0xF2, 0x93, 0x5F, 0xA8};
@@ -25,11 +25,6 @@ struct_message myData;
 // 1 as leader, ctrl other device via ESP-NOW.
 // 2 as follower, can be controled via ESP-NOW.
 #define DEFAULT_ROLE 0
-
-// set the default wifi mode here.
-// 1 as [AP] mode, it will not connect other wifi.
-// 2 as [STA] mode, it will connect to know wifi.
-#define DEFAULT_WIFI_MODE 1
 
 // the uart used to control servos.
 // GPIO 18 - S_RXD, GPIO 19 - S_TXD, as default.
@@ -56,10 +51,10 @@ bool SERIAL_FORWARDING = false;
 // OLED Screen Dispaly.
 // Row1: MAC address.
 // Row2: VCC --- IP address.
-// Row3: MODE:Leader/Follower  [AP]/[STA][RSSI]
+// Row3: MODE:Leader/Follower  [STA SSID]/[AP SSID]
 //       DEFAULT_ROLE: 1-Leader(L)/ 2-Follower(F).
-//       DEFAULT_WIFI_MODE: 1-[AP]/ 2-[STA][RSSI] / 3-[TRY:SSID].
-//       (no matter what wifi mode you select, you can always ctrl it via ESP-NOW.)
+//       Tries STA first, falls back to AP if connection fails.
+//       (ESP-NOW always available regardless of wifi mode.)
 // Row4: the position of servo 1, 2 and 3.
 String MAC_ADDRESS;
 IPAddress IP_ADDRESS;

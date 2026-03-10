@@ -235,7 +235,31 @@ void setAP(){
 
 void setSTA(){
   WIFI_MODE = 3;
+  Serial.print("Connecting to ");
+  Serial.println(STA_SSID);
   WiFi.begin(STA_SSID, STA_PWD);
+
+  // Wait up to 10 seconds for connection.
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+    delay(500);
+    Serial.print(".");
+    attempts++;
+  }
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    WIFI_MODE = 2;
+    getIP();
+    Serial.print("Connected to ");
+    Serial.println(STA_SSID);
+    Serial.print("IP address: ");
+    Serial.println(IP_ADDRESS);
+  } else {
+    Serial.println("STA connection failed, falling back to AP mode.");
+    WiFi.disconnect();
+    setAP();
+  }
 }
 
 
@@ -245,19 +269,16 @@ void getWifiStatus(){
     getIP();
     WIFI_RSSI = WiFi.RSSI();
   }
-  else if(WiFi.status() == WL_CONNECTION_LOST && DEFAULT_WIFI_MODE == 2){
+  else if(WiFi.status() == WL_CONNECTION_LOST && WIFI_MODE == 2){
     WIFI_MODE = 3;
-    // WiFi.disconnect();
     WiFi.reconnect();
   }
 }
 
 
 void wifiInit(){
-  DEV_ROLE  = DEFAULT_ROLE;
-  WIFI_MODE = DEFAULT_WIFI_MODE;
-  if(WIFI_MODE == 1){setAP();}
-  else if(WIFI_MODE == 2){setSTA();}
+  DEV_ROLE = DEFAULT_ROLE;
+  setSTA();
 }
 
 
