@@ -46,14 +46,15 @@ int rangeCtrl(int rawInput, int minInput, int maxInput){
 
 
 void activeCtrl(int cmdInput){
+  Serial.printf("activeCtrl: cmd=%d mode=%d servoType=%d\n", cmdInput, modeRead[listID[activeNumInList]], SERVO_TYPE_SELECT);
   switch(cmdInput){
-    case 1:st.WritePosEx(listID[activeNumInList], ServoDigitalMiddle, activeServoSpeed, ServoInitACC);break;
+    case 1:servoWritePosEx(listID[activeNumInList], ServoDigitalMiddle, activeServoSpeed, ServoInitACC);break;
     case 2:
       if(modeRead[listID[activeNumInList]] == 0) {
         servoStop(listID[activeNumInList]);
       }
       else if(modeRead[listID[activeNumInList]] == 3){
-        st.WritePos(listID[activeNumInList], 0, 0, 0);
+        servoWritePos(listID[activeNumInList], 0, 0, 0);
       }
       break;
     case 3:servoTorque(listID[activeNumInList],0);Torque_List[activeNumInList] = false;break;
@@ -61,40 +62,40 @@ void activeCtrl(int cmdInput){
     case 5:
       if(modeRead[listID[activeNumInList]] == 0){
         if(SERVO_TYPE_SELECT == 1){
-          st.WritePosEx(listID[activeNumInList], ServoDigitalRange - 1, activeServoSpeed, ServoInitACC);
+          servoWritePosEx(listID[activeNumInList], ServoDigitalRange - 1, activeServoSpeed, ServoInitACC);
         }
         else if(SERVO_TYPE_SELECT == 2){
-          st.WritePosEx(listID[activeNumInList], ServoDigitalRange - MAX_MIN_OFFSET, activeServoSpeed, ServoInitACC);
+          servoWritePosEx(listID[activeNumInList], ServoDigitalRange - MAX_MIN_OFFSET, activeServoSpeed, ServoInitACC);
         }
       }
 
 
       else if(modeRead[listID[activeNumInList]] == 3){
         if(SERVO_TYPE_SELECT == 1){
-          st.WritePosEx(listID[activeNumInList], 10000, activeServoSpeed, ServoInitACC);
+          servoWritePosEx(listID[activeNumInList], 10000, activeServoSpeed, ServoInitACC);
         }
         else if(SERVO_TYPE_SELECT == 2){
-          st.WritePos(listID[activeNumInList], 0, rangeCtrl(activeServoSpeed,200,999), 0);
+          servoWritePos(listID[activeNumInList], 0, rangeCtrl(activeServoSpeed,200,999), 0);
         }
       }
       break;
     case 6:
       if(modeRead[listID[activeNumInList]] == 0){
         if(SERVO_TYPE_SELECT == 1){
-          st.WritePosEx(listID[activeNumInList], 0, activeServoSpeed, ServoInitACC);
+          servoWritePosEx(listID[activeNumInList], 0, activeServoSpeed, ServoInitACC);
         }
         else if(SERVO_TYPE_SELECT == 2){
-          st.WritePosEx(listID[activeNumInList], MAX_MIN_OFFSET, activeServoSpeed, ServoInitACC);
+          servoWritePosEx(listID[activeNumInList], MAX_MIN_OFFSET, activeServoSpeed, ServoInitACC);
         }
       }
 
 
       else if(modeRead[listID[activeNumInList]] == 3){
         if(SERVO_TYPE_SELECT == 1){
-          st.WritePosEx(listID[activeNumInList], -10000, activeServoSpeed, ServoInitACC);
+          servoWritePosEx(listID[activeNumInList], -10000, activeServoSpeed, ServoInitACC);
         }
         else if(SERVO_TYPE_SELECT == 2){
-          st.WritePos(listID[activeNumInList], 0, rangeCtrl(activeServoSpeed,200,999)+1024, 0);
+          servoWritePos(listID[activeNumInList], 0, rangeCtrl(activeServoSpeed,200,999)+1024, 0);
         }
       }
       break;
@@ -295,7 +296,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     if(myData.Spd_send < 50){
       myData.Spd_send = 200;
     }
-    st.WritePosEx(myData.ID_send, myData.POS_send, abs(myData.Spd_send), 0);
+    servoWritePosEx(myData.ID_send, myData.POS_send, abs(myData.Spd_send), 0);
 
     Serial.print("Bytes received: ");
     Serial.println(len);

@@ -65,7 +65,8 @@ void pingAll(bool searchCommand){
     searchFinished = false;
     int PingStatus;
     for(int i = 0; i <= MAX_ID; i++){
-      PingStatus = st.Ping(i);
+      servo_bus.set_servo_type(currentServoType());
+      auto PingResult = servo_bus.ping(i);
 
       display.clearDisplay();
       display.setTextSize(1);
@@ -81,7 +82,7 @@ void pingAll(bool searchCommand){
       }
       display.display();
 
-      if(PingStatus!=-1){
+      if(PingResult.has_value()){
         listID[searchNum] = i;
         searchNum++;
       }

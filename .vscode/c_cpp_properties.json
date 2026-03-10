@@ -9,7 +9,6 @@
             "name": "PlatformIO",
             "includePath": [
                 "/home/brian/projects/Servo-Driver-with-ESP32/src",
-                "/home/brian/projects/Servo-Driver-with-ESP32/lib/SCServo",
                 "/home/brian/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src",
                 "/home/brian/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
                 "/home/brian/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
@@ -215,6 +214,8 @@
                 "/home/brian/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/dio_qspi/include",
                 "/home/brian/.platformio/packages/framework-arduinoespressif32/cores/esp32",
                 "/home/brian/.platformio/packages/framework-arduinoespressif32/variants/esp32",
+                "/home/brian/projects/Servo-Driver-with-ESP32/lib/nerd-bus-servo/include",
+                "/home/brian/projects/Servo-Driver-with-ESP32/lib/nerd-bus-servo/src",
                 "/home/brian/.platformio/packages/framework-arduinoespressif32/libraries/ArduinoOTA/src",
                 "/home/brian/.platformio/packages/framework-arduinoespressif32/libraries/AsyncUDP/src",
                 "/home/brian/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
@@ -249,7 +250,6 @@
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
                     "/home/brian/projects/Servo-Driver-with-ESP32/src",
-                    "/home/brian/projects/Servo-Driver-with-ESP32/lib/SCServo",
                     "/home/brian/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src",
                     "/home/brian/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
                     "/home/brian/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
@@ -455,6 +455,8 @@
                     "/home/brian/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/dio_qspi/include",
                     "/home/brian/.platformio/packages/framework-arduinoespressif32/cores/esp32",
                     "/home/brian/.platformio/packages/framework-arduinoespressif32/variants/esp32",
+                    "/home/brian/projects/Servo-Driver-with-ESP32/lib/nerd-bus-servo/include",
+                    "/home/brian/projects/Servo-Driver-with-ESP32/lib/nerd-bus-servo/src",
                     "/home/brian/.platformio/packages/framework-arduinoespressif32/libraries/ArduinoOTA/src",
                     "/home/brian/.platformio/packages/framework-arduinoespressif32/libraries/AsyncUDP/src",
                     "/home/brian/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
@@ -507,7 +509,7 @@
                 ""
             ],
             "cStandard": "gnu99",
-            "cppStandard": "gnu++11",
+            "cppStandard": "gnu++17",
             "compilerPath": "/home/brian/.platformio/packages/toolchain-xtensa-esp32/bin/xtensa-esp32-elf-gcc",
             "compilerArgs": [
                 "-mlongcalls",
