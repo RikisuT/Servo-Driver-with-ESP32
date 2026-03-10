@@ -70,10 +70,6 @@ byte servotoSet = 0;
 // linkageBuffer to save the angle.
 float linkageBuffer[50];
 
-// the buffer of the bytes read from USB-C and servos. 
-int usbRead;
-int stsRead;
-
 
 // ----------- Core functions -----------
 

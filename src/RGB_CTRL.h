@@ -3,7 +3,6 @@
 #include <Adafruit_NeoPixel.h>
 #define BRIGHTNESS  255
 
-int RAINBOW_STATUS = 0;
 
 Adafruit_NeoPixel matrix = Adafruit_NeoPixel(NUMPIXELS, RGB_LED, NEO_GRB + NEO_KHZ800);
 
@@ -52,32 +51,3 @@ void ctrlAllLED(int totalNum, int inputR, int inputG, int inputB){
   }
 }
 
-
-// Input a value 0 to 255 to get a color value.
-// The colours are a transition r - g - b - back to r.
-uint32_t Wheel(byte WheelPos) {
-  if(WheelPos < 85) {
-    return matrix.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-  } 
-  else if(WheelPos < 170) {
-    WheelPos -= 85;
-    return matrix.Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  } 
-  else {
-    WheelPos -= 170;
-    return matrix.Color(0, WheelPos * 3, 255 - WheelPos * 3);
-  }
-}
-
-
-void rainbow(uint8_t wait) {
-  uint16_t i, j;
-  for(j=0; j<256; j++) {
-    for(i=0; i<matrix.numPixels(); i++) {
-      matrix.setPixelColor(i, Wheel((i*1+j) & 255));
-    }
-    matrix.show();
-    if(!RAINBOW_STATUS){RGBALLoff();break;}
-    delay(wait);
-  }
-}

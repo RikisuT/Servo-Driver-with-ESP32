@@ -1,5 +1,4 @@
 // https://randomnerdtutorials.com/esp32-useful-wi-fi-functions-arduino/
-#include <esp_now.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include "WEBPAGE.h"
@@ -90,16 +89,7 @@ void activeCtrl(int cmdInput){
     case 11:setMiddle(id);break;
     case 12:setMode(id, 0);break;
     case 13:setMode(id, 3);break;
-    case 14:SERIAL_FORWARDING = true;break;
-    case 15:SERIAL_FORWARDING = false;break;
     case 16:setID(id, servotoSet);break;
-
-    case 17:DEV_ROLE = 0;break;
-    case 18:DEV_ROLE = 1;break;
-    case 19:DEV_ROLE = 2;break;
-
-    case 20:RAINBOW_STATUS = 1;break;
-    case 21:RAINBOW_STATUS = 0;break;
   }
 }
 
@@ -128,15 +118,6 @@ void handleSTS() {
   String stsValue = "Active ID:" + String(listID[activeNumInList]);
   if(voltageRead[listID[activeNumInList]] != -1){
     stsValue += "  Position:" + String(posRead[listID[activeNumInList]]);
-    if(DEV_ROLE == 0){
-      stsValue += "<p>Device Mode: Normal";
-    }
-    else if(DEV_ROLE == 1){
-      stsValue += "<p>Device Mode: Leader";
-    }
-    else if(DEV_ROLE == 2){
-      stsValue += "<p>Device Mode: Follower";
-    }
     stsValue += "<p>Voltage:" + String(float(voltageRead[listID[activeNumInList]])/10);
     stsValue += "  Load:" + String(loadRead[listID[activeNumInList]]);
     stsValue += "<p>Speed:" + String(speedRead[listID[activeNumInList]]);
@@ -262,64 +243,7 @@ void getWifiStatus(){
 
 
 void wifiInit(){
-  DEV_ROLE = DEFAULT_ROLE;
   setSTA();
 }
 
 
-void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  Serial.print("\r\nLast Packet Send Status:\t");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-}
-
-
-void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-  if(DEV_ROLE == 2){
-    memcpy(&myData, incomingData, sizeof(myData));
-    myData.Spd_send = abs(myData.Spd_send);
-    if(myData.Spd_send < 50){
-      myData.Spd_send = 200;
-    }
-    servoWritePosEx(myData.ID_send, myData.POS_send, abs(myData.Spd_send), 0);
-
-    Serial.print("Bytes received: ");
-    Serial.println(len);
-    Serial.print("POS: ");
-    Serial.println(myData.POS_send);
-    Serial.print("SPEED: ");
-    Serial.println(abs(myData.Spd_send));
-  }
-}
-
-
-void espNowInit(){
-  // Set device as a Wi-Fi Station
-  WiFi.mode(WIFI_STA);
-
-  // Init ESP-NOW
-  if (esp_now_init() != ESP_OK) {
-    Serial.println("Error initializing ESP-NOW");
-    return;
-  }
-
-  // Once ESPNow is successfully Init, we will register for Send CB to
-  // get the status of Trasnmitted packet
-  esp_now_register_send_cb(OnDataSent);
-  esp_now_register_recv_cb(OnDataRecv);
-
-  // Register peer
-  esp_now_peer_info_t peerInfo;
-  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  peerInfo.channel = 0;  
-  peerInfo.encrypt = false;
-  
-  // Add peer        
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
-    Serial.println("Failed to add peer");
-    return;
-  }
-
-  MAC_ADDRESS = WiFi.macAddress();
-  Serial.print("MAC:");
-  Serial.println(WiFi.macAddress());
-}

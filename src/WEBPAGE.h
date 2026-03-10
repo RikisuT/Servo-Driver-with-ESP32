@@ -94,15 +94,6 @@ const char index_html[] PROGMEM = R"rawliteral(
     <p>
         <label align="center"><button class="button" onclick="set_servo_mode();">Set Servo Mode</button></label>
         <label align="center"><button class="button" onclick="set_stepper_mode();">Set Motor Mode</button></label>
-    <p>
-        <label align="center"><button class="button" id="serial_forwarding" onclick="serial_forwarding();">Start Serial Forwarding</button></label>
-    <p>
-        <label align="center"><button class="button" onclick="set_role(0);">Normal</button></label>
-        <label align="center"><button class="button" onclick="set_role(1);">Leader</button></label>
-        <label align="center"><button class="button" onclick="set_role(2);">Follower</button></label>
-    <p>
-        <label align="center"><button class="button" onclick="send_command(cmd_type.servo_control, servo_cmd.rainbow_on);">RainbowON</button></label>
-        <label align="center"><button class="button" onclick="send_command(cmd_type.servo_control, servo_cmd.rainbow_off);">RainbowOFF</button></label>
     <script>
         const cmd_type = Object.freeze({
             select_servo:  0,
@@ -124,22 +115,13 @@ const char index_html[] PROGMEM = R"rawliteral(
             set_middle:     11,
             set_servo_mode: 12,
             set_motor_mode: 13,
-            serial_fwd_on:  14,
-            serial_fwd_off: 15,
             set_new_id:     16,
-            role_normal:    17,
-            role_leader:    18,
-            role_follower:  19,
-            rainbow_on:     20,
-            rainbow_off:    21,
         });
 
         const select_dir = Object.freeze({
             next:  1,
             prev: -1,
         });
-
-        var serial_forward_status = false;
 
         function send_command(type, instruction) {
             var xhr = new XMLHttpRequest();
@@ -179,24 +161,6 @@ const char index_html[] PROGMEM = R"rawliteral(
             xhttp.send();
         }
 
-        function set_role(mode_num) {
-            if (mode_num == 0) {
-                if (confirm("Set the role as Normal. Dev won't send or receive data via ESP-NOW.")) {
-                    send_command(cmd_type.servo_control, servo_cmd.role_normal);
-                }
-            }
-            if (mode_num == 1) {
-                if (confirm("Set the role as Leader. Dev will send data via ESP-NOW.")) {
-                    send_command(cmd_type.servo_control, servo_cmd.role_leader);
-                }
-            }
-            if (mode_num == 2) {
-                if (confirm("Set the role as Follower. Dev will receive data via ESP-NOW.")) {
-                    send_command(cmd_type.servo_control, servo_cmd.role_follower);
-                }
-            }
-        }
-
         function set_middle() {
             if (confirm("The middle position of the active servo will be set.")) {
                 send_command(cmd_type.servo_control, servo_cmd.set_middle);
@@ -218,23 +182,6 @@ const char index_html[] PROGMEM = R"rawliteral(
         function set_new_id() {
             if (confirm("A new ID of the active servo will be set.")) {
                 send_command(cmd_type.servo_control, servo_cmd.set_new_id);
-            }
-        }
-
-        function serial_forwarding() {
-            if (!serial_forward_status) {
-                if (confirm("Do you want to start serial forwarding?")) {
-                    send_command(cmd_type.servo_control, servo_cmd.serial_fwd_on);
-                    serial_forward_status = true;
-                    document.getElementById("serial_forwarding").innerHTML = "Stop Serial Forwarding";
-                }
-            }
-            else {
-                if (confirm("Do you want to stop serial forwarding?")) {
-                    send_command(cmd_type.servo_control, servo_cmd.serial_fwd_off);
-                    serial_forward_status = false;
-                    document.getElementById("serial_forwarding").innerHTML = "Start Serial Forwarding";
-                }
             }
         }
 

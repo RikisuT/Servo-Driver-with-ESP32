@@ -34,11 +34,7 @@ void screenUpdate(){
   else if(WIFI_MODE == 2){display.println(STA_SSID);}
   else if(WIFI_MODE == 3){display.print(F("TRY:"));display.println(STA_SSID);}
   // Row3.
-  display.print(F("MODE:"));
-
-  if(DEV_ROLE == 1){display.print(F("L"));}
-  else if(DEV_ROLE == 2){display.print(F("F"));}
-  else if(DEV_ROLE == 0){display.print(F("N"));}
+  display.print(F("WIFI:"));
 
   if(WIFI_MODE == 1){display.print(F(" AP "));display.println(AP_SSID);}
   else if(WIFI_MODE == 2){display.print(F(" STA "));display.println(STA_SSID);}
@@ -107,80 +103,15 @@ void boardDevInit(){
 }
 
 
-void espNowSendData(){
-  // Set values to send
-  myData.ID_send = listID[activeNumInList];
-  myData.POS_send = posRead[listID[activeNumInList]];
-  myData.Spd_send = speedRead[listID[activeNumInList]];
-  
-  // Send message via ESP-NOW
-  esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
-   
-  if (result == ESP_OK) {
-    Serial.println("Sent with success");
-  }
-  else {
-    Serial.println("Error sending the data");
-  }
-  delay(200);
-}
 
 
 void InfoUpdateThreading(void *pvParameter){
   while(1){
-    if(!SERIAL_FORWARDING && !RAINBOW_STATUS){
-      getFeedBack(listID[activeNumInList]);
-      getWifiStatus();
-      screenUpdate();
-      delay(threadingInterval);
-      pingAll(searchCmd);
-    }
-    else if(SERIAL_FORWARDING){
-      display.clearDisplay();
-      display.setTextSize(1);
-      display.setTextColor(SSD1306_WHITE);
-      display.setCursor(0,0);
-      display.println(F(" - - - - - - - -"));
-      display.println(F("SERIAL_FORWARDING"));
-      display.println(F(" - - - - - - - -"));
-      display.display();
-      delay(1000);
-    }
-    else if(RAINBOW_STATUS){
-      display.clearDisplay();
-      display.setTextSize(3);
-      display.setTextColor(SSD1306_WHITE);
-      display.setCursor(0,0);
-      display.println(F("RAINBOW"));
-      display.display();
-      rainbow(30);
-    }
-  }
-}
-
-
-void workingModeSelect(){
-  if(SERIAL_FORWARDING){
-    while(SERIAL_FORWARDING){
-      server.handleClient();
-      if (Serial.available()){
-        usbRead = Serial.read();
-        Serial1.write(usbRead);
-      }
-      if (Serial1.available()){
-        stsRead = Serial1.read();
-        Serial.write(stsRead);
-      }
-      // st.WritePosEx(1, 25, 600, 0);
-      // st.WritePosEx(2, 25, 600, 0);
-      // st.WritePosEx(3, 25, 600, 0);
-      // delay(2000);
-      // server.handleClient();
-      // st.WritePosEx(1, 1000, 600, 0);
-      // st.WritePosEx(2, 1000, 600, 0);
-      // st.WritePosEx(3, 1000, 600, 0);
-      // delay(2000);
-    }
+    getFeedBack(listID[activeNumInList]);
+    getWifiStatus();
+    screenUpdate();
+    delay(threadingInterval);
+    pingAll(searchCmd);
   }
 }
 
@@ -188,13 +119,7 @@ void workingModeSelect(){
 void clientThreading(void *pvParameter){
   while(1){
     server.handleClient();
-    workingModeSelect();
-    if(!DEV_ROLE){
-      delay(clientInterval);
-    }
-    if(DEV_ROLE == 1){
-      espNowSendData();
-    }
+    delay(clientInterval);
   }
 }
 
