@@ -183,18 +183,22 @@ Replace the existing single-servo button-stack UI with the card-per-servo layout
 
 ### 4.1 — Servo Naming
 
-- Each card header shows an editable name next to the `#ID` badge
-- Default name: "Servo 5", "Servo 11", etc.
-- Click the name to edit inline, blur or enter to save
-- Names stored in localStorage (keyed by servo ID)
-- Names persist across page reloads on the same browser
+- Each card header shows an inline-editable name field next to the `#ID` badge
+- Empty names show "—" (em dash) as placeholder
+- Click the field to edit, blur or Enter to auto-save
+- Names stored in ESP32 NVS (persistent across reboots and reflashes)
+- `/api/set_name?id=X&name=Y` endpoint for read/write
+- `/api/scan` includes `name` field per servo
+- Names migrate automatically when servo ID is changed via Set ID
+- Max length: 20 characters
 
 **Verification:**
-- [ ] Card shows default name "Servo 5" on first visit
-- [ ] Click name, type "Left Shoulder", press enter → name updates
-- [ ] Refresh page → name persists from localStorage
-- [ ] Scan new servo → gets default name
-- [ ] ID still gets shown
+- [x] Card shows "—" placeholder for unnamed servos
+- [x] Click name field, type "pitch", press Enter → saves silently
+- [x] Refresh page → name persists (served from ESP32 NVS)
+- [x] Reboot ESP32 → name still persists
+- [x] Scan new servo → shows "—" placeholder
+- [x] ID still shown as `#5` next to the name
 
 
 
