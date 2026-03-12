@@ -91,6 +91,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 
 /* Actual marker on slider */
 .actual-marker{position:absolute;top:0;width:3px;height:10px;background:var(--green);border-radius:1px;opacity:0.8;pointer-events:none;transition:left 0.3s}
+.limit-marker{position:absolute;top:-2px;width:2px;height:14px;border-radius:1px;opacity:0.6;pointer-events:none;transition:left 0.3s}
+.limit-min{background:var(--orange)}
+.limit-max{background:var(--orange)}
 
 /* Step selector */
 .step-row{display:flex;gap:3px;align-items:center}
@@ -110,6 +113,21 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .field-input{background:rgba(0,0,0,0.3);border:1.5px solid rgba(255,255,255,0.1);border-radius:5px;color:var(--text);font-size:14px;font-family:var(--mono);font-weight:600;width:58px;text-align:center;outline:none;padding:3px 2px;transition:border-color .15s}
 .field-input:focus{border-color:var(--accent)}
 .field-input.warn{color:var(--orange);border-color:rgba(232,148,58,0.3)}
+
+/* Config section */
+.cfg-toggle{display:flex;align-items:center;gap:6px;margin-top:10px;padding:6px 0;cursor:pointer;border:none;background:none;color:var(--dim);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase}
+.cfg-toggle:hover{color:var(--mid)}
+.cfg-arrow{transition:transform .2s;font-size:10px}
+.cfg-arrow.open{transform:rotate(90deg)}
+.cfg-body{display:none;padding:8px 0 2px}
+.cfg-body.open{display:block}
+.cfg-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.cfg-save{padding:4px 12px;border-radius:5px;font-size:12px;font-weight:600;background:rgba(108,140,255,0.15);border:1px solid rgba(108,140,255,0.25);color:var(--accent);transition:all .12s}
+.cfg-save:hover{background:rgba(108,140,255,0.25)}
+.cfg-save.danger{background:rgba(232,93,93,0.12);border-color:rgba(232,93,93,0.25);color:var(--red)}
+.cfg-save.danger:hover{background:rgba(232,93,93,0.22)}
+.cfg-status{font-size:11px;color:var(--green);font-weight:600;margin-left:4px;opacity:0;transition:opacity .3s}
+.cfg-status.show{opacity:1}
 </style>
 </head>
 <body>
@@ -163,14 +181,14 @@ function pollScanDone(){
       return;
     }
     api('/api/scan',function(d){
-      if(d.servos){servos=d.servos.map(function(s){var o=servoById(s.id);return mk(s,o)});renderAll();startPolling();loadTorqueLimits()}
+      if(d.servos){servos=d.servos.map(function(s){var o=servoById(s.id);return mk(s,o)});renderAll();startPolling();loadTorqueLimits();loadAngleLimits()}
       scanning=false;document.getElementById('scanBtn').textContent='Scan';setConn(true);
     });
   });
 }
 function initialLoad(){
   api('/api/scan',function(d){
-    if(d.servos&&d.servos.length>0){servos=d.servos.map(function(s){return mk(s,null)});renderAll();startPolling();loadTorqueLimits()}
+    if(d.servos&&d.servos.length>0){servos=d.servos.map(function(s){return mk(s,null)});renderAll();startPolling();loadTorqueLimits();loadAngleLimits()}
     setConn(true);
   });
 }
@@ -178,7 +196,8 @@ function mk(s,old){
   return{id:s.id,type:s.type,range:s.range,middle:s.middle,hasCurrent:s.hasCurrent!==false,
     pos:0,goal:0,speed:0,load:0,voltage:0,temp:0,current:0,
     mode:0,torque:true,step:old?old.step:10,setpoint:old?old.setpoint:-1,inited:old?old.inited:false,
-    speedSet:old?old.speedSet:500,torqueLimit:old?old.torqueLimit:-1};
+    speedSet:old?old.speedSet:500,torqueLimit:old?old.torqueLimit:-1,
+    limMin:old?old.limMin:-1,limMax:old?old.limMax:-1};
 }
 function servoById(id){for(var i=0;i<servos.length;i++)if(servos[i].id===id)return servos[i];return null}
 
@@ -248,6 +267,8 @@ function buildCard(s){
     h+='<div class="slider-row">';
     h+='<input type="range" min="0" max="'+s.range+'" value="'+s.setpoint+'" id="sl-'+s.id+'" oninput="sliderMove('+s.id+',this.value)" onchange="sliderDone('+s.id+',this.value)">';
     h+='<div class="actual-marker" id="mk-'+s.id+'" style="left:'+pct(s.pos,s.range)+'%"></div>';
+h+='<div class="limit-marker limit-min" id="lm-min-'+s.id+'" style="left:'+(s.limMin>=0?pct(s.limMin,s.range):0)+'%;display:'+(s.limMin>=0?'block':'none')+'"></div>';
+h+='<div class="limit-marker limit-max" id="lm-max-'+s.id+'" style="left:'+(s.limMax>=0?pct(s.limMax,s.range):100)+'%;display:'+(s.limMax>=0?'block':'none')+'"></div>';
     h+='</div>';
     h+='<div class="slider-bounds"><span>0</span><span>'+s.range+'</span></div>';
     h+='</div></div>';
@@ -274,6 +295,31 @@ function buildCard(s){
   h+='</div>';
 
   h+='</div>'; // pos-block
+
+  // Config section (collapsible)
+  h+='<button class="cfg-toggle" onclick="toggleCfg('+s.id+')">';
+  h+='<span class="cfg-arrow" id="cfg-arr-'+s.id+'">\u25b6</span> Config</button>';
+  h+='<div class="cfg-body" id="cfg-'+s.id+'">';
+
+  // Angle limits
+  h+='<div class="cfg-row">';
+  h+='<div class="field-grp"><span class="field-lbl">Min Pos</span>';
+  h+='<input type="text" class="field-input" id="cfg-min-'+s.id+'" value="'+(s.limMin>=0?s.limMin:'...')+'"></div>';
+  h+='<div class="field-grp"><span class="field-lbl">Max Pos</span>';
+  h+='<input type="text" class="field-input" id="cfg-max-'+s.id+'" value="'+(s.limMax>=0?s.limMax:'...')+'"></div>';
+  h+='<button class="cfg-save" onclick="saveLimits('+s.id+')">Save Limits</button>';
+  h+='<span class="cfg-status" id="cfg-lim-ok-'+s.id+'">Saved \u2713</span>';
+  h+='</div>';
+
+  // Set ID
+  h+='<div class="cfg-row">';
+  h+='<div class="field-grp"><span class="field-lbl">New ID</span>';
+  h+='<input type="text" class="field-input" id="cfg-newid-'+s.id+'" value="'+s.id+'"></div>';
+  h+='<button class="cfg-save danger" onclick="saveId('+s.id+')">Set ID</button>';
+  h+='<span class="cfg-status" id="cfg-id-ok-'+s.id+'"></span>';
+  h+='</div>';
+
+  h+='</div>'; // cfg-body
 
   div.innerHTML=h;return div;
 }
@@ -378,6 +424,83 @@ function loadTorqueLimits(){
       api('/api/torque_limit?id='+s.id,function(d){if(d.value!==undefined){s.torqueLimit=d.value;var el=document.getElementById('tl-inp-'+s.id);if(el){el.value=d.value;el.className='field-input'+(d.value===1023?' warn':'')}}});
     })(servos[i]);
   }
+}
+
+// Load angle limits for all servos after scan
+function loadAngleLimits(){
+  for(var i=0;i<servos.length;i++){(function(s){
+    api('/api/angle_limits?id='+s.id,function(d){
+      if(d.min!==undefined){s.limMin=d.min;s.limMax=d.max;
+        var el=document.getElementById('cfg-min-'+s.id);if(el)el.value=d.min;
+        el=document.getElementById('cfg-max-'+s.id);if(el)el.value=d.max;
+        updateLimitMarkers(s)}
+    });
+  })(servos[i])}
+}
+
+function toggleCfg(id){
+  var body=document.getElementById('cfg-'+id);
+  var arr=document.getElementById('cfg-arr-'+id);
+  if(!body)return;
+  var open=body.classList.toggle('open');
+  if(arr)arr.classList.toggle('open',open);
+  // Lazy-load limits on first open
+  var s=servoById(id);
+  if(open&&s&&s.limMin<0)loadAngleLimitsFor(s);
+}
+function loadAngleLimitsFor(s){
+  api('/api/angle_limits?id='+s.id,function(d){
+    if(d.min!==undefined){s.limMin=d.min;s.limMax=d.max;
+      var el=document.getElementById('cfg-min-'+s.id);if(el)el.value=d.min;
+      el=document.getElementById('cfg-max-'+s.id);if(el)el.value=d.max;
+      updateLimitMarkers(s)}
+  });
+}
+function updateLimitMarkers(s){
+  var mn=document.getElementById('lm-min-'+s.id);
+  var mx=document.getElementById('lm-max-'+s.id);
+  if(mn){mn.style.left=pct(s.limMin,s.range)+'%';mn.style.display=s.limMin>=0?'block':'none'}
+  if(mx){mx.style.left=pct(s.limMax,s.range)+'%';mx.style.display=s.limMax>=0?'block':'none'}
+}
+
+function flashStatus(elId,msg){
+  var el=document.getElementById(elId);if(!el)return;
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(function(){el.classList.remove('show')},2000);
+}
+
+function saveLimits(id){
+  var s=servoById(id);if(!s)return;
+  var minEl=document.getElementById('cfg-min-'+id);
+  var maxEl=document.getElementById('cfg-max-'+id);
+  if(!minEl||!maxEl)return;
+  var minV=parseInt(minEl.value)||0;
+  var maxV=parseInt(maxEl.value)||0;
+  api('/api/angle_limits?id='+id+'&min='+minV+'&max='+maxV,function(d){
+    if(d.ok){s.limMin=minV;s.limMax=maxV;updateLimitMarkers(s);flashStatus('cfg-lim-ok-'+id,'Saved \u2713')}
+    else{flashStatus('cfg-lim-ok-'+id,'Error \u2717')}
+  });
+}
+
+function saveId(id){
+  var s=servoById(id);if(!s)return;
+  var el=document.getElementById('cfg-newid-'+id);if(!el)return;
+  var newId=parseInt(el.value);
+  if(isNaN(newId)||newId<0||newId>253){flashStatus('cfg-id-ok-'+id,'Invalid');return}
+  if(newId===id){flashStatus('cfg-id-ok-'+id,'Same ID');return}
+  if(!confirm('Change servo ID from '+id+' to '+newId+'?'))return;
+  api('/api/set_id?id='+id+'&new_id='+newId,function(d){
+    if(d.ok){
+      s.id=newId;
+      flashStatus('cfg-id-ok-'+id,'Now #'+newId);
+      // Reload after brief delay so card rebuilds with new ID
+      setTimeout(function(){
+        api('/api/scan',function(dd){
+          if(dd.servos){servos=dd.servos.map(function(sv){var o=servoById(sv.id);return mk(sv,o)});renderAll();startPolling()}
+        });
+      },500);
+    } else {flashStatus('cfg-id-ok-'+id,'Failed')}
+  });
 }
 
 initialLoad();

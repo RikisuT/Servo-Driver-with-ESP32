@@ -26,8 +26,8 @@ void webCtrlServer(){
       bool isSTS = s && (s->type() == ServoBusApi::ServoType::STS);
       json += "{\"id\":" + String(id);
       json += ",\"type\":\"" + String(isSTS ? "STS" : "SC") + "\"";
-      json += ",\"range\":" + String(s ? s->max_encoder_angle() : (int)ServoDigitalRange);
-      json += ",\"middle\":" + String(s ? s->max_encoder_angle() / 2 : (int)ServoDigitalMiddle);
+      json += ",\"range\":" + String(s ? s->full_range() : (int)ServoDigitalRange);
+      json += ",\"middle\":" + String(s ? s->full_range() / 2 : (int)ServoDigitalMiddle);
       json += ",\"hasCurrent\":" + String(s && s->current_supported() ? "true" : "false");
       json += "}";
     }
@@ -53,7 +53,7 @@ void webCtrlServer(){
       json += ",\"current\":" + String(currentRead[id]);
       json += ",\"mode\":" + String(modeRead[id]);
       json += ",\"torque\":" + String(Torque_List[id] ? "true" : "false");
-      json += ",\"range\":" + String(s ? s->max_encoder_angle() : (int)ServoDigitalRange);
+      json += ",\"range\":" + String(s ? s->full_range() : (int)ServoDigitalRange);
       json += "}";
     }
     json += "]}";
@@ -154,6 +154,66 @@ void webCtrlServer(){
     } else {
       uint16_t val = sts->read_torque_limit();
       server.send(200, "application/json", "{\"value\":" + String(val) + "}");
+    }
+  });
+
+  server.on("/api/angle_limits", [](){
+    if(!server.hasArg("id")){
+      server.send(400, "application/json", "{\"error\":\"missing id\"}");
+      return;
+    }
+    int id = server.arg("id").toInt();
+    if(id < 0 || id > 252 || !servos[id]){
+      server.send(404, "application/json", "{\"error\":\"servo not found\"}");
+      return;
+    }
+    if(server.hasArg("min") && server.hasArg("max")){
+      int minVal = server.arg("min").toInt();
+      int maxVal = server.arg("max").toInt();
+      bool ok = servos[id]->write_angle_limits((uint16_t)minVal, (uint16_t)maxVal);
+      if(ok){
+        server.send(200, "application/json", "{\"ok\":true}");
+      } else {
+        server.send(500, "application/json", "{\"error\":\"write failed\"}");
+      }
+    } else {
+      auto limits = servos[id]->read_angle_limits();
+      if(limits){
+        String json = "{\"min\":" + String(limits->min_angle) + ",\"max\":" + String(limits->max_angle) + "}";
+        server.send(200, "application/json", json);
+      } else {
+        server.send(500, "application/json", "{\"error\":\"read failed\"}");
+      }
+    }
+  });
+
+  server.on("/api/set_id", [](){
+    if(!server.hasArg("id") || !server.hasArg("new_id")){
+      server.send(400, "application/json", "{\"error\":\"missing id or new_id\"}");
+      return;
+    }
+    int id = server.arg("id").toInt();
+    int newId = server.arg("new_id").toInt();
+    if(id < 0 || id > 252 || !servos[id]){
+      server.send(404, "application/json", "{\"error\":\"servo not found\"}");
+      return;
+    }
+    if(newId < 0 || newId > 253){
+      server.send(400, "application/json", "{\"error\":\"new_id out of range\"}");
+      return;
+    }
+    bool ok = servos[id]->set_id((uint8_t)newId);
+    if(ok){
+      // Move servo pointer to new ID slot
+      servos[newId] = servos[id];
+      servos[id] = nullptr;
+      // Update listID
+      for(int i = 0; i < searchNum; i++){
+        if(listID[i] == id){ listID[i] = newId; break; }
+      }
+      server.send(200, "application/json", "{\"ok\":true,\"new_id\":" + String(newId) + "}");
+    } else {
+      server.send(500, "application/json", "{\"error\":\"set_id failed\"}");
     }
   });
 
