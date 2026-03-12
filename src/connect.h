@@ -29,6 +29,15 @@ void webCtrlServer(){
       json += ",\"range\":" + String(s ? s->full_range() : (int)ServoDigitalRange);
       json += ",\"middle\":" + String(s ? s->full_range() / 2 : (int)ServoDigitalMiddle);
       json += ",\"hasCurrent\":" + String(s && s->current_supported() ? "true" : "false");
+      String sname = get_servo_name(id);
+      json += ",\"name\":\"";
+      // Escape quotes in name for JSON safety
+      for (unsigned int ci = 0; ci < sname.length(); ci++) {
+        char ch = sname.charAt(ci);
+        if (ch == '"' || ch == '\\') json += '\\';
+        json += ch;
+      }
+      json += "\"";
       json += "}";
     }
     json += "]}";
@@ -229,6 +238,8 @@ void webCtrlServer(){
       // Move servo pointer to new ID slot
       servos[newId] = servos[id];
       servos[id] = nullptr;
+      // Migrate servo name to new ID
+      migrate_servo_name((uint8_t)id, (uint8_t)newId);
       // Update listID
       for(int i = 0; i < searchNum; i++){
         if(listID[i] == id){ listID[i] = newId; break; }
@@ -236,6 +247,27 @@ void webCtrlServer(){
       server.send(200, "application/json", "{\"ok\":true,\"new_id\":" + String(newId) + "}");
     } else {
       server.send(500, "application/json", "{\"error\":\"set_id failed\"}");
+    }
+  });
+
+  server.on("/api/set_name", [](){
+    if(!server.hasArg("id")){
+      server.send(400, "application/json", "{\"error\":\"missing id\"}");
+      return;
+    }
+    int id = server.arg("id").toInt();
+    if(id < 0 || id > 252){
+      server.send(400, "application/json", "{\"error\":\"id out of range\"}");
+      return;
+    }
+    if(server.hasArg("name")){
+      String name = server.arg("name");
+      if(name.length() > 20) name = name.substring(0, 20);
+      set_servo_name((uint8_t)id, name);
+      server.send(200, "application/json", "{\"ok\":true}");
+    } else {
+      String name = get_servo_name((uint8_t)id);
+      server.send(200, "application/json", "{\"name\":\"" + name + "\"}");
     }
   });
 

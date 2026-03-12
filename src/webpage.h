@@ -40,6 +40,10 @@ input{font-family:var(--mono)}
 /* Card header: ID + mode + torque */
 .card-hdr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .servo-id{font-size:20px;font-family:var(--mono);font-weight:800}
+.name-inline{background:transparent;border:1px solid transparent;border-radius:4px;color:var(--mid);font-size:14px;font-weight:600;width:90px;outline:none;padding:2px 4px;margin-left:4px;transition:border-color .15s,background .15s}
+.name-inline:hover{border-color:rgba(255,255,255,0.15)}
+.name-inline:focus{border-color:var(--accent);background:rgba(0,0,0,0.3);color:var(--text)}
+.name-inline::placeholder{color:var(--dim);font-weight:400}
 .mode-badge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700;background:rgba(108,140,255,0.12);color:var(--accent)}
 .moving-badge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700;background:rgba(80,200,120,0.12);color:var(--green);animation:pulse 1.5s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
@@ -195,6 +199,7 @@ function initialLoad(){
 }
 function mk(s,old){
   return{id:s.id,type:s.type,range:s.range,middle:s.middle,hasCurrent:s.hasCurrent!==false,
+    name:s.name||old&&old.name||'',
     pos:0,goal:0,speed:0,load:0,voltage:0,temp:0,current:0,
     mode:0,torque:true,step:old?old.step:10,setpoint:old?old.setpoint:-1,inited:old?old.inited:false,
     speedSet:old?old.speedSet:500,torqueLimit:old?old.torqueLimit:-1,
@@ -231,6 +236,7 @@ function buildCard(s){
   // Header: ID + mode + torque
   h+='<div class="card-hdr">';
   h+='<span class="servo-id">#'+s.id+'</span>';
+  h+='<input type="text" class="name-inline" id="name-'+s.id+'" value="'+(s.name||'')+'" maxlength="20" placeholder="\u2014" onblur="commitName('+s.id+',this)" onkeydown="if(event.key===\'Enter\')this.blur()">';
   h+='<span class="mode-badge" id="mode-'+s.id+'">'+(isM?'Motor':'Servo')+'</span>';
   h+='<span class="moving-badge" id="moving-'+s.id+'" style="display:none">Moving</span>';
   h+='<button class="torque-btn '+(s.torque?'torque-on':'torque-off')+'" id="tbtn-'+s.id+'" onclick="toggleTorque('+s.id+')">';
@@ -460,8 +466,8 @@ function loadAngleLimitsFor(s){
 function updateLimitMarkers(s){
   var mn=document.getElementById('lm-min-'+s.id);
   var mx=document.getElementById('lm-max-'+s.id);
-  if(mn){mn.style.display=s.limMin>=0?'block':'none';mn.style.left=pct(s.limMin,s.range)+'%'}
-  if(mx){mx.style.display=s.limMax>=0?'block':'none';mx.style.left=pct(s.limMax,s.range)+'%'}
+  if(mn){mn.style.left=pct(s.limMin,s.range)+'%';mn.style.display=s.limMin>=0?'block':'none'}
+  if(mx){mx.style.left=pct(s.limMax,s.range)+'%';mx.style.display=s.limMax>=0?'block':'none'}
 }
 
 function flashStatus(elId,msg){
@@ -479,14 +485,26 @@ function saveLimits(id){
   var maxV=parseInt(maxEl.value)||0;
   api('/api/angle_limits?id='+id+'&min='+minV+'&max='+maxV,function(d){
     if(d.ok){
-      s.limMin=minV;s.limMax=maxV;
-      updateLimitMarkers(s);
       flashStatus('cfg-lim-ok-'+id,'Saved \u2713');
+      // Read back to confirm and update markers
+      api('/api/angle_limits?id='+id,function(rd){
+        if(rd.min!==undefined){s.limMin=rd.min;s.limMax=rd.max;
+          minEl.value=rd.min;maxEl.value=rd.max;
+          updateLimitMarkers(s)}
+      });
     }
     else{flashStatus('cfg-lim-ok-'+id,'Error \u2717')}
   });
 }
 
+function commitName(id,el){
+  var s=servoById(id);if(!s)return;
+  var name=el.value.trim().substring(0,20);
+  if(name===s.name)return;
+  api('/api/set_name?id='+id+'&name='+encodeURIComponent(name),function(d){
+    if(d.ok)s.name=name;
+  });
+}
 function saveId(id){
   var s=servoById(id);if(!s)return;
   var el=document.getElementById('cfg-newid-'+id);if(!el)return;

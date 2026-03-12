@@ -30,6 +30,7 @@ static constexpr int clientInterval    = 1;
 #endif
 
 #include "rgb_ctrl.h"
+#include "preferences_config.h"
 #include "sts_ctrl.h"
 #include "connect.h"
 #include "board_dev.h"
@@ -42,6 +43,8 @@ void setup() {
   getMAC();
   
   boardDevInit();
+
+  preferencesSetup();
 
   RGBcolor(0, 64, 255);
 

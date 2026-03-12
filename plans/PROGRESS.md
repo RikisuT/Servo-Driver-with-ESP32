@@ -50,7 +50,7 @@ This is the user's own library that provides a clean abstraction over both SC an
 
 - **`ServoBusApi`** — Low-level bus protocol with automatic byte-order handling (SC=big-endian, STS=little-endian), type-safe register validation, `std::optional` returns for error handling
 - **`Servo`** (base class) — Common operations: `read_encoder_angle()`, `read_speed()`, `read_load()`, `read_voltage()`, `read_temperature()`, `enable_torque()`, `disable_torque()`, `is_torque_enabled()`, `move_to_encoder_angle()`, `move_to_percent()`, PWM/motor mode
-- **`Servo::infer_servo_type()`** — Auto-detects SC vs STS per servo by reading angle limits with both byte orders
+- **`Servo::infer_servo_type()`** — Auto-detects SC vs STS per servo by reading angle limits with both byte orders. Also checks MODE register for STS servos in motor/wheel mode (max_angle=0) to prevent misdetection as SC.
 - **`SCServo`** — SC-series wrapper (0–1023 range, big-endian)
 - **`STSServo`** — STS-series wrapper with extras: `move_to_encoder_angle_with_accel()`, `set_torque_limit()`, `read_torque_limit()`, wheel mode (`enable_wheel_mode()`, `set_wheel_velocity()`)
 - **`ServoBusApi::set_servo_id_permanent()`** — Full EEPROM lock/unlock/write/verify flow for ID changes
@@ -166,11 +166,6 @@ All sub-tasks were implemented as part of Phase 1 UI work.
 - [x] Reduced client thread delay from 10ms to 1ms
 - [x] Manual hardware test — PASSED 2026-03-11
 
-## Bug Fixes — COMPLETE
-
-- [x] **EEPROM write timeout:** `write_angle_limits`, `enable_motor_mode`, `restore_position_mode` were failing (500 error) because 2ms ACK timeout was too short for EEPROM operations. Fixed in library: `unlock_eeprom` now sets 50ms timeout, `lock_eeprom` restores it. Added `delay(10)` between unlock/write/lock steps.
-- [x] **Limit markers not updating after save:** `saveLimits()` JS now updates markers on successful write. Removed debug console.log.
-
 ---
 
 ## Phase 4: Servo Naming + Batch Actions — NOT STARTED
@@ -209,6 +204,7 @@ All sub-tasks were implemented as part of Phase 1 UI work.
 - [ ] **5.6** PID Tuning: P/I/D, Speed P/I (STS, *needs regs 21-23, 37, 39*)
 - [ ] **5.7** Protection: current, torque, overload, time (STS, *needs regs 28, 34-36*)
 - [x] **5.8a** Set New ID (already in UI, `/api/set_id` exists)
+- [x] **5.8c** Servo naming — editable display name per servo, stored in ESP32 NVS, shown in card header and config. Names migrate on ID change.
 - [ ] **5.8b** Set Middle button (STS only, uses `set_offset()`)
 
 **Library registers to add** (all STS-only, EPROM unless noted):

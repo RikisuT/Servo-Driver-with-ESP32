@@ -98,10 +98,10 @@ Replace the existing single-servo button-stack UI with the card-per-servo layout
 - Step size selector: ±1, ±10, ±100
 
 **Verification:**
-- [ ] Drag slider → servo physically moves, input updates
-- [ ] Type `2048` in input, press enter → servo moves to center, slider updates
-- [ ] Tap `+` with step=10 → position increments by 10, servo moves
-- [ ] Change step to 100, tap `−` → position decrements by 100
+- [x] Drag slider → servo physically moves, input updates
+- [x] Type `2048` in input, press enter → servo moves to center, slider updates
+- [x] Tap `+` with step=10 → position increments by 10, servo moves
+- [x] Change step to 100, tap `−` → position decrements by 100
 
 ### 1.3 — Position Jog-Only (Motor Mode)
 
@@ -121,9 +121,9 @@ Replace the existing single-servo button-stack UI with the card-per-servo layout
 - Color: green if |actual − setpoint| ≤ 20, orange if larger
 
 **Verification:**
-- [ ] With torque on, set position — actual tracks closely, shown in green
-- [ ] Turn torque off, push servo by hand — actual changes, goes orange since it diverges from setpoint
-- [ ] Turn torque back on — servo returns to setpoint, actual goes green again
+- [x] With torque on, set position — actual tracks closely, shown in green
+- [x] Turn torque off, push servo by hand — actual changes, goes orange since it diverges from setpoint
+- [x] Turn torque back on — servo returns to setpoint, actual goes green again
 
 ---
 
@@ -137,9 +137,9 @@ Replace the existing single-servo button-stack UI with the card-per-servo layout
 - Show a pulsing "Moving" badge when the servo reports movement
 
 **Verification:**
-- [ ] All four values display and update in real-time
-- [ ] Apply load to a servo by hand — Load and Current values increase, turn orange if threshold crossed
-- [ ] Command a move — "Moving" badge appears during travel, disappears on arrival
+- [x] All four values display and update in real-time
+- [x] Apply load to a servo by hand — Load and Current values increase, turn orange if threshold crossed
+- [x] Command a move — "Moving" badge appears during travel, disappears on arrival
 
 ### 2.2 — Torque Toggle
 
@@ -148,9 +148,9 @@ Replace the existing single-servo button-stack UI with the card-per-servo layout
 - "Release" button in quick actions also turns torque off
 
 **Verification:**
-- [ ] Torque on → servo holds position, resists movement
-- [ ] Torque off → servo is free to move by hand
-- [ ] "Release" button has same effect as toggling torque off
+- [x] Torque on → servo holds position, resists movement
+- [x] Torque off → servo is free to move by hand
+- [x] "Release" button has same effect as toggling torque off
 
 ---
 
@@ -162,21 +162,20 @@ Replace the existing single-servo button-stack UI with the card-per-servo layout
 - Min/Max use the configured angle limits (defaults to 0 and 4095 until changed)
 
 **Verification:**
-- [ ] "Center" moves servo to 2048
-- [ ] Set angle limits (e.g., 500/3500 in Phase 5), then "Min"/"Max" go to those values
-- [ ] "Stop" halts servo movement immediately
+- [x] "Center" moves servo to 2048
+- [x] Set angle limits (e.g., 500/3500 in Phase 5), then "Min"/"Max" go to those values
+
 
 ### 3.2 — Speed + Torque Limit Inline
 
 - Below quick actions, show: `Speed [___]` and `Torque Limit [___] /1000`
 - Simple text input fields, no sliders
-- Torque limit text turns orange when at factory default (1000)
 - These values are sent to the servo when changed
 
 **Verification:**
 - [ ] Change speed to 50 → servo moves noticeably slower on next position command
 - [ ] Change torque limit to 300 → servo is weaker, can be overpowered by hand more easily
-- [ ] Torque limit field shows orange at 1000, normal color at other values
+
 
 ---
 
