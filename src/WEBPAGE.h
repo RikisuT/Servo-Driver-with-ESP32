@@ -162,8 +162,8 @@ function initialLoad(){
   });
 }
 function mk(s,old){
-  return{id:s.id,type:s.type,range:s.range,middle:s.middle,
-    pos:0,speed:0,load:0,voltage:0,temp:0,current:0,
+  return{id:s.id,type:s.type,range:s.range,middle:s.middle,hasCurrent:s.hasCurrent!==false,
+    pos:0,goal:0,speed:0,load:0,voltage:0,temp:0,current:0,
     mode:0,torque:true,step:old?old.step:10,setpoint:old?old.setpoint:-1,inited:old?old.inited:false};
 }
 function servoById(id){for(var i=0;i<servos.length;i++)if(servos[i].id===id)return servos[i];return null}
@@ -175,7 +175,7 @@ function pollStatus(){
     if(!d.servos)return;setConn(true);
     for(var i=0;i<d.servos.length;i++){
       var sd=d.servos[i],s=servoById(sd.id);if(!s)continue;
-      s.pos=sd.pos;s.speed=sd.speed;s.load=sd.load;
+      s.pos=sd.pos;s.goal=sd.goal;s.speed=sd.speed;s.load=sd.load;
       s.voltage=sd.voltage;s.temp=sd.temp;s.current=sd.current;
       s.mode=sd.mode;s.torque=sd.torque;s.range=sd.range;
       if(!s.inited){s.setpoint=s.pos;s.inited=true;rebuildCard(s)}
@@ -207,7 +207,7 @@ function buildCard(s){
   h+='<span><span class="tl">V </span><span id="tv-'+s.id+'">'+fv(s.voltage)+'</span></span>';
   h+='<span><span class="tl">Load </span><span id="tl-'+s.id+'">'+s.load+'</span></span>';
   h+='<span><span class="tl">Temp </span><span id="tt-'+s.id+'">'+s.temp+'\u00b0</span></span>';
-  h+='<span><span class="tl">mA </span><span id="tc-'+s.id+'">'+s.current+'</span></span>';
+  if(s.hasCurrent)h+='<span><span class="tl">mA </span><span id="tc-'+s.id+'">'+s.current+'</span></span>';
   h+='</div>';
 
   // Position block
@@ -216,6 +216,7 @@ function buildCard(s){
   // Info row: Position | Actual: XXX
   h+='<div class="pos-info">';
   h+='<span class="pos-lbl">Position</span>';
+  h+='<span style="font-size:13px;color:var(--dim)">Goal: <span id="goal-'+s.id+'">'+s.goal+'</span></span>';
   h+='<span style="font-size:13px;color:var(--dim)">Actual: <span class="pos-val pos-match" id="actual-'+s.id+'">'+s.pos+'</span></span>';
   h+='</div>';
 
@@ -261,8 +262,9 @@ function updateCard(s){
   el=document.getElementById('tt-'+s.id);if(el){el.textContent=s.temp+'\u00b0';el.className=s.temp>50?'tw':''}
   el=document.getElementById('tc-'+s.id);if(el)el.textContent=s.current;
   el=document.getElementById('tbtn-'+s.id);if(el)el.className='torque-btn '+(s.torque?'torque-on':'torque-off');
+  el=document.getElementById('goal-'+s.id);if(el)el.textContent=s.goal;
   el=document.getElementById('actual-'+s.id);
-  if(el){el.textContent=s.pos;el.className='pos-val '+(Math.abs(s.pos-s.setpoint)>20?'pos-diff':'pos-match')}
+  if(el){el.textContent=s.pos;el.className='pos-val '+(Math.abs(s.pos-s.goal)>20?'pos-diff':'pos-match')}
   el=document.getElementById('sl-'+s.id);if(el&&document.activeElement!==el)el.value=s.setpoint;
   el=document.getElementById('mk-'+s.id);if(el)el.style.left=pct(s.pos,s.range)+'%';
   el=document.getElementById('sp-'+s.id);if(el&&document.activeElement!==el)el.value=s.setpoint;

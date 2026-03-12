@@ -106,23 +106,20 @@ This is the user's own library that provides a clean abstraction over both SC an
 - [x] **1.0i** Add JSON API endpoint: `GET /api/status_all` → returns per-servo telemetry (pos, speed, load, voltage, temp, current, mode, torque, range)
 - [x] **1.0j** Add JSON API endpoints: `GET /api/setpos?id=X&pos=Y&speed=Z` and `GET /api/rescan`
 - [x] **1.0k** Verified compilation: `pio run` succeeds (RAM 15.7%, Flash 64.0%)
-- [ ] **1.0-TEST** Manual hardware test (see checklist below)
+- [x] **1.0-TEST** Manual hardware test — PASSED 2026-03-11
 
-**🧪 Manual Test Checkpoint — 1.0g-j (MUST DO BEFORE 1.1):**
-
-1. Flash the board (Upload and Monitor)
-2. Open Serial Monitor — on boot you should see lines like:
-   - `Servo 11: STS (range 0-4095)` (or `SC (range 0-1023)`) for each detected servo
-3. Connect your phone/laptop to the ESP32 WiFi AP (`ESP32_DEV` / `12345678`)
-4. Open `http://192.168.4.1/api/scan` in browser — confirm JSON with your servo IDs, types, and ranges
-5. Open `http://192.168.4.1/api/status_all` — confirm telemetry JSON (pos, voltage, temp should be nonzero for powered servos)
-6. Open `http://192.168.4.1/api/setpos?id=YOUR_ID&pos=2048&speed=500` — confirm the servo physically moves
-7. Refresh `/api/status_all` — confirm `pos` updated to near 2048
-8. Open `http://192.168.4.1/api/rescan` — confirm `{"ok":true}`, then re-check `/api/scan`
-- [ ] **1.1** New HTML/CSS: dark theme, card layout, scan button, card rendering from JS (adapts slider range per servo type)
-- [ ] **1.2** Position slider + direct text input + jog buttons (servo mode) — range adapts to SC 0–1023 or STS 0–4095
-- [ ] **1.3** Jog-only mode for motor-mode servos
-- [ ] **1.4** Setpoint vs actual display with color coding
+**Test Results (2026-03-11):** Board at 192.168.86.68 (STA mode). 4 servos detected: STS #5 (range 0–4095), SC #11/#12/#13 (range 0–1003).
+- `/api/scan` — correct JSON with IDs, types, ranges, hasCurrent
+- `/api/status_all` — telemetry OK (pos, voltage 9.6–9.9V, temp 23–30°C, torque=true)
+- `/api/setpos?id=5&pos=2048&speed=500` — servo physically moved, position confirmed at 2048
+- `/api/rescan` — returned ok, re-scan found same 4 servos
+- **Note:** setpos fails silently under bus contention (telemetry thread). Works reliably when contention is low. Mutex needed eventually.
+- [x] **1.0l** Removed legacy `/cmd`, `/readID`, `/readSTS` routes and all supporting functions (`activeCtrl`, `activeID`, `activeSpeed`, `rangeCtrl`, `handleID`, `handleSTS`). Removed unused vars `servotoSet`, `MAX_MIN_OFFSET`. Added `/api/stop` endpoint. Single REST API surface now.
+- [x] **1.1** Dark theme, card layout, scan button, card rendering from JS (adapts slider range per servo type) — already implemented in WEBPAGE.h
+- [x] **1.2** Position slider + direct text input + jog buttons (servo mode) — already implemented, range adapts to SC 0–1023 or STS 0–4095
+- [x] **1.3** Jog-only mode for motor-mode servos — already implemented (large jog buttons, no slider)
+- [x] **1.4** Setpoint vs actual display with color coding — already implemented (green=match, orange=diff)
+- [ ] **1.x-TEST** Manual hardware test of full Phase 1 UI (see checklist below)
 
 **Verification:** See IMPLEMENTATION_PLAN.md Phase 1 checklists.
 

@@ -22,7 +22,6 @@ int   ServoInitACC;
 int   ServoMaxSpeed;
 int   MaxSpeed_X;
 int   ServoInitSpeed;
-int   MAX_MIN_OFFSET = 30;
 
 // Per-servo polymorphic pointers, allocated during scan.
 // servos[id] is non-null for detected servos, null otherwise.
@@ -61,6 +60,7 @@ s16  speedRead[253];
 byte voltageRead[253];
 int  currentRead[253];
 s16  posRead[253];
+s16  goalRead[253];
 s16  modeRead[253];
 s16  temperRead[253];
 
@@ -72,7 +72,6 @@ bool searchFinished = false;
 bool searchCmd      = false;
 byte activeNumInList = 0;
 s16 activeServoSpeed = 100;
-byte servotoSet = 0;
 
 // linkageBuffer to save the angle.
 float linkageBuffer[50];
@@ -104,6 +103,9 @@ void getFeedBack(byte servoID) {
   auto pos = s->read_encoder_angle();
   if (!pos) return;
   posRead[servoID] = *pos;
+
+  auto goal = s->read_goal_position();
+  if (goal) goalRead[servoID] = *goal;
 
   auto spd = s->read_speed();
   if (spd) speedRead[servoID] = *spd;
