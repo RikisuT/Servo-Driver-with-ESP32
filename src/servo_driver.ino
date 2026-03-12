@@ -21,7 +21,7 @@ byte   WIFI_MODE;
 int    WIFI_RSSI;
 
 static constexpr int threadingInterval = 50;
-static constexpr int clientInterval    = 10;
+static constexpr int clientInterval    = 1;
 
 #if CONFIG_FREERTOS_UNICORE
 #define ARDUINO_RUNNING_CORE 0

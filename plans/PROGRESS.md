@@ -119,7 +119,7 @@ This is the user's own library that provides a clean abstraction over both SC an
 - [x] **1.2** Position slider + direct text input + jog buttons (servo mode) — already implemented, range adapts to SC 0–1023 or STS 0–4095
 - [x] **1.3** Jog-only mode for motor-mode servos — already implemented (large jog buttons, no slider)
 - [x] **1.4** Setpoint vs actual display with color coding — already implemented (green=match, orange=diff)
-- [ ] **1.x-TEST** Manual hardware test of full Phase 1 UI (see checklist below)
+- [x] **1.x-TEST** Manual hardware test of full Phase 1 UI — PASSED 2026-03-11
 
 **Verification:** See IMPLEMENTATION_PLAN.md Phase 1 checklists.
 
@@ -152,6 +152,19 @@ All sub-tasks were implemented as part of Phase 1 UI work.
 - [x] **3.x-TEST** Manual hardware test — PASSED 2026-03-11. Quick actions move servo correctly, speed field affects move speed, torque limit field reads/writes on STS, hidden on SC.
 
 **Verification:** See IMPLEMENTATION_PLAN.md Phase 3 checklists.
+
+---
+
+## Bus Mutex — COMPLETE
+
+**Goal:** Prevent Serial1 bus contention between telemetry polling and web command threads.
+
+- [x] Added `SemaphoreHandle_t servo_bus_mutex` global, created in `servoInit()`
+- [x] Wrapped all `servo_bus` / `Servo*` bus calls in `sts_ctrl.h` (getFeedBack, servoWritePosEx, servoWritePos, setMiddle, setMode, setID, servoStop, servoTorque)
+- [x] Wrapped `pingAll()` scan loop in `board_dev.h`
+- [x] Wrapped direct servo calls in `connect.h` handlers (stop/motor, torque_limit, angle_limits, set_id)
+- [x] Reduced client thread delay from 10ms to 1ms
+- [x] Manual hardware test — PASSED 2026-03-11
 
 ---
 

@@ -69,6 +69,7 @@ void pingAll(bool searchCommand){
     searchNum = 0;
     searchedStatus = true;
     searchFinished = false;
+    xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
     for(int i = 0; i <= MAX_ID; i++){
       // Either servo type works for ping
       servo_bus.set_servo_type(ServoBusApi::ServoType::STS);
@@ -120,6 +121,7 @@ void pingAll(bool searchCommand){
       Serial.print(listID[i]);Serial.print(" ");
     }
     Serial.println();
+    xSemaphoreGive(servo_bus_mutex);
     searchedStatus = false;
     searchFinished = true;
     searchCmd      = false;

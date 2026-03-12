@@ -3,6 +3,9 @@
 #include "sts_servo.h"
 #include <math.h>
 
+// Mutex protecting all servo_bus access (Serial1).
+// Must be taken before any read/write to servo_bus or Servo* methods.
+SemaphoreHandle_t servo_bus_mutex = nullptr;
 
 // === Servo configuration ===
 // Set to 1 for STS servos, 2 for SC servos
@@ -70,26 +73,31 @@ int16_t activeServoSpeed = 100;
 
 void servoWritePosEx(byte id, uint16_t position, uint16_t speed, uint8_t acc) {
   auto* s = servoForId(id);
+  xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
   if (s->type() == ServoBusApi::ServoType::STS && acc > 0 && s->info_loaded()) {
     static_cast<STSServo*>(s)->move_to_encoder_angle_with_accel(position, speed, acc);
   } else {
     servo_bus.set_servo_type(s->type());
     servo_bus.write_position(id, position, 0, speed);
   }
+  xSemaphoreGive(servo_bus_mutex);
 }
 
 void servoWritePos(byte id, uint16_t position, uint16_t time_ms, uint16_t speed) {
   auto* s = servoForId(id);
+  xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
   servo_bus.set_servo_type(s->type());
   servo_bus.write_position(id, position, time_ms, speed);
+  xSemaphoreGive(servo_bus_mutex);
 }
 
 
 void getFeedBack(byte servoID) {
   auto* s = servoForId(servoID);
 
+  xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
   auto pos = s->read_encoder_angle();
-  if (!pos) return;
+  if (!pos) { xSemaphoreGive(servo_bus_mutex); return; }
   posRead[servoID] = *pos;
 
   auto goal = s->read_goal_position();
@@ -115,10 +123,13 @@ void getFeedBack(byte servoID) {
 
   auto torq = s->is_torque_enabled();
   if (torq) Torque_List[servoID] = *torq;
+  xSemaphoreGive(servo_bus_mutex);
 }
 
 
 void servoInit() {
+  servo_bus_mutex = xSemaphoreCreateMutex();
+
   Serial1.begin(1000000, SERIAL_8N1, S_RXD, S_TXD);
   servo_bus.set_serial(&Serial1);
   servo_bus.set_echo_enabled(false);    // Waveshare board: HW TX/RX isolation
@@ -156,42 +167,52 @@ void servoInit() {
 void setMiddle(byte InputID) {
   if (SERVO_TYPE_SELECT == 1) {
     auto* s = servoForId(InputID);
+    xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
     servo_bus.set_servo_type(s->type());
     servo_bus.set_offset(InputID, 0);
+    xSemaphoreGive(servo_bus_mutex);
   }
 }
 
 
 void setMode(byte InputID, byte InputMode) {
   auto* s = servoForId(InputID);
+  xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
   if (InputMode == 0) {
     s->restore_position_mode();
   } else if (InputMode == 3) {
     s->enable_motor_mode();
   }
+  xSemaphoreGive(servo_bus_mutex);
 }
 
 
 void setID(byte ID_select, byte ID_set) {
   if (ID_set > MAX_ID) { MAX_ID = ID_set; }
+  xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
   servo_bus.set_servo_type(active_servo->type());
   servo_bus.set_servo_id_permanent(ID_select, ID_set);
+  xSemaphoreGive(servo_bus_mutex);
 }
 
 
 void servoStop(byte servoID) {
   auto* s = servoForId(servoID);
+  xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
   s->disable_torque();
   delay(10);
   s->enable_torque();
+  xSemaphoreGive(servo_bus_mutex);
 }
 
 
 void servoTorque(byte servoID, uint8_t enableCMD) {
   auto* s = servoForId(servoID);
+  xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
   if (enableCMD) {
     s->enable_torque();
   } else {
     s->disable_torque();
   }
+  xSemaphoreGive(servo_bus_mutex);
 }

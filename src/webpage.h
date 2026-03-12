@@ -460,8 +460,8 @@ function loadAngleLimitsFor(s){
 function updateLimitMarkers(s){
   var mn=document.getElementById('lm-min-'+s.id);
   var mx=document.getElementById('lm-max-'+s.id);
-  if(mn){mn.style.left=pct(s.limMin,s.range)+'%';mn.style.display=s.limMin>=0?'block':'none'}
-  if(mx){mx.style.left=pct(s.limMax,s.range)+'%';mx.style.display=s.limMax>=0?'block':'none'}
+  if(mn){mn.style.display=s.limMin>=0?'block':'none';mn.style.left=pct(s.limMin,s.range)+'%'}
+  if(mx){mx.style.display=s.limMax>=0?'block':'none';mx.style.left=pct(s.limMax,s.range)+'%'}
 }
 
 function flashStatus(elId,msg){
@@ -478,7 +478,11 @@ function saveLimits(id){
   var minV=parseInt(minEl.value)||0;
   var maxV=parseInt(maxEl.value)||0;
   api('/api/angle_limits?id='+id+'&min='+minV+'&max='+maxV,function(d){
-    if(d.ok){s.limMin=minV;s.limMax=maxV;updateLimitMarkers(s);flashStatus('cfg-lim-ok-'+id,'Saved \u2713')}
+    if(d.ok){
+      s.limMin=minV;s.limMax=maxV;
+      updateLimitMarkers(s);
+      flashStatus('cfg-lim-ok-'+id,'Saved \u2713');
+    }
     else{flashStatus('cfg-lim-ok-'+id,'Error \u2717')}
   });
 }

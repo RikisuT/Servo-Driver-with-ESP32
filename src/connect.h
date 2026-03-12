@@ -110,7 +110,9 @@ void webCtrlServer(){
     }
     int mode = modeRead[id];
     if(mode == 3) {
+      xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
       servoForId(id)->set_motor_speed(0);
+      xSemaphoreGive(servo_bus_mutex);
     } else {
       servoStop(id);
     }
@@ -154,10 +156,14 @@ void webCtrlServer(){
       int val = server.arg("value").toInt();
       if(val < 0) val = 0;
       if(val > 1023) val = 1023;
+      xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
       sts->set_torque_limit((uint16_t)val);
+      xSemaphoreGive(servo_bus_mutex);
       server.send(200, "application/json", "{\"ok\":true}");
     } else {
+      xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
       uint16_t val = sts->read_torque_limit();
+      xSemaphoreGive(servo_bus_mutex);
       server.send(200, "application/json", "{\"value\":" + String(val) + "}");
     }
   });
@@ -180,14 +186,18 @@ void webCtrlServer(){
         server.send(400, "application/json", "{\"error\":\"invalid angle limits\"}");
         return;
       }
+      xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
       bool ok = servos[id]->write_angle_limits((uint16_t)minVal, (uint16_t)maxVal);
+      xSemaphoreGive(servo_bus_mutex);
       if(ok){
         server.send(200, "application/json", "{\"ok\":true}");
       } else {
         server.send(500, "application/json", "{\"error\":\"write failed\"}");
       }
     } else {
+      xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
       auto limits = servos[id]->read_angle_limits();
+      xSemaphoreGive(servo_bus_mutex);
       if(limits){
         String json = "{\"min\":" + String(limits->min_angle) + ",\"max\":" + String(limits->max_angle) + "}";
         server.send(200, "application/json", json);
@@ -212,7 +222,9 @@ void webCtrlServer(){
       server.send(400, "application/json", "{\"error\":\"new_id out of range\"}");
       return;
     }
+    xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
     bool ok = servos[id]->set_id((uint8_t)newId);
+    xSemaphoreGive(servo_bus_mutex);
     if(ok){
       // Move servo pointer to new ID slot
       servos[newId] = servos[id];
