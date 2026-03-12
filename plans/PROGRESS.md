@@ -125,37 +125,31 @@ This is the user's own library that provides a clean abstraction over both SC an
 
 ---
 
-## Phase 2: Telemetry + Torque — NOT STARTED
+## Phase 2: Telemetry + Torque — COMPLETE
 
-**Goal:** Add live telemetry display and torque toggle to each servo card.
+All sub-tasks were implemented as part of Phase 1 UI work.
 
-**Files to modify:**
-- `src/WEBPAGE.h` — update HTML/JS for telemetry row and torque toggle  
-- `src/CONNECT.h` — ensure `/api/status_all` returns voltage, load, temp, current, moving flag
-
-**Sub-tasks:**
-- [ ] **2.1** Telemetry row in card header (V, Load, Temp, mA) with warning colors
-- [ ] **2.1** "Moving" badge with pulse animation
-- [ ] **2.1** Periodic polling via `fetch('/api/status_all')` every ~750ms
-- [ ] **2.2** Torque toggle pill button (green=on, grey=off)
-- [ ] **2.2** Add JSON API endpoint: `POST /api/torque` → accepts `id`, `enable`
-
-**Verification:** See IMPLEMENTATION_PLAN.md Phase 2 checklists.
+- [x] **2.1** Telemetry row (V, Load, Temp, mA) with orange warning colors (V<6, load>50, temp>50)
+- [x] **2.1** "Moving" badge with pulse animation (shown when speed≠0)
+- [x] **2.1** Periodic polling via `setInterval(pollStatus, 100)` (100ms)
+- [x] **2.2** Torque toggle pill button (green=on, grey=off)
+- [x] **2.2** `/api/torque` endpoint (GET, id + enable params)
 
 ---
 
-## Phase 3: Quick Actions + Speed + Torque Limit — NOT STARTED
+## Phase 3: Quick Actions + Speed + Torque Limit — COMPLETE
 
 **Goal:** Add quick action buttons (Center, Min, Max, Stop, Release) and inline speed/torque-limit fields.
 
 **Files to modify:**
 - `src/WEBPAGE.h` — add button row and inline fields to each card
-- `src/CONNECT.h` — possibly add `/api/stop` endpoint, or reuse `/api/setpos`
+- `src/CONNECT.h` — `/api/stop` already done, added `/api/torque_limit`
 
 **Sub-tasks:**
-- [ ] **3.1** Quick action button row: Center, Min, Max, Stop, Release
-- [ ] **3.2** Speed input field (sends with next position command)
-- [ ] **3.2** Torque Limit input field with orange color at factory default (1000)
+- [x] **3.1** Quick action button row: Min, Center, Max (Stop/Release removed — torque toggle covers those)
+- [x] **3.2** Speed input field per servo (sends with next position command, default 500)
+- [x] **3.3** Torque Limit input field (STS only, 0–1023) with orange warning at factory default (1023). Added `/api/torque_limit` endpoint (read+write).
+- [x] **3.x-TEST** Manual hardware test — PASSED 2026-03-11. Quick actions move servo correctly, speed field affects move speed, torque limit field reads/writes on STS, hidden on SC.
 
 **Verification:** See IMPLEMENTATION_PLAN.md Phase 3 checklists.
 

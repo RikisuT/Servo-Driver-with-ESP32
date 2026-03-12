@@ -130,6 +130,33 @@ void webCtrlServer(){
     server.send(200, "application/json", "{\"ok\":true}");
   });
 
+  server.on("/api/torque_limit", [](){
+    if(!server.hasArg("id")){
+      server.send(400, "application/json", "{\"error\":\"missing id\"}");
+      return;
+    }
+    int id = server.arg("id").toInt();
+    if(id < 0 || id > 252 || !servos[id]){
+      server.send(404, "application/json", "{\"error\":\"servo not found\"}");
+      return;
+    }
+    if(servos[id]->type() != ServoBusApi::ServoType::STS){
+      server.send(400, "application/json", "{\"error\":\"torque limit only supported on STS servos\"}");
+      return;
+    }
+    auto* sts = static_cast<STSServo*>(servos[id]);
+    if(server.hasArg("value")){
+      int val = server.arg("value").toInt();
+      if(val < 0) val = 0;
+      if(val > 1023) val = 1023;
+      sts->set_torque_limit((uint16_t)val);
+      server.send(200, "application/json", "{\"ok\":true}");
+    } else {
+      uint16_t val = sts->read_torque_limit();
+      server.send(200, "application/json", "{\"value\":" + String(val) + "}");
+    }
+  });
+
   // Start server
   server.begin();
   Serial.println("Server Starts.");

@@ -97,6 +97,19 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 .step-row .pm{font-size:12px;color:var(--dim);margin-right:2px}
 .step-btn{padding:3px 9px;border-radius:5px;font-size:13px;font-weight:600;background:transparent;border:1px solid transparent;color:var(--faint);font-family:var(--mono);transition:all .12s}
 .step-btn.active{background:rgba(108,140,255,0.15);border-color:rgba(108,140,255,0.25);color:var(--accent)}
+
+/* Quick action buttons */
+.qa-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.qa-btn{padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--mid);transition:all .12s}
+
+
+/* Inline fields row */
+.fields-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.field-grp{display:flex;align-items:center;gap:4px}
+.field-lbl{font-size:11px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:0.04em}
+.field-input{background:rgba(0,0,0,0.3);border:1.5px solid rgba(255,255,255,0.1);border-radius:5px;color:var(--text);font-size:14px;font-family:var(--mono);font-weight:600;width:58px;text-align:center;outline:none;padding:3px 2px;transition:border-color .15s}
+.field-input:focus{border-color:var(--accent)}
+.field-input.warn{color:var(--orange);border-color:rgba(232,148,58,0.3)}
 </style>
 </head>
 <body>
@@ -150,21 +163,22 @@ function pollScanDone(){
       return;
     }
     api('/api/scan',function(d){
-      if(d.servos){servos=d.servos.map(function(s){var o=servoById(s.id);return mk(s,o)});renderAll();startPolling()}
+      if(d.servos){servos=d.servos.map(function(s){var o=servoById(s.id);return mk(s,o)});renderAll();startPolling();loadTorqueLimits()}
       scanning=false;document.getElementById('scanBtn').textContent='Scan';setConn(true);
     });
   });
 }
 function initialLoad(){
   api('/api/scan',function(d){
-    if(d.servos&&d.servos.length>0){servos=d.servos.map(function(s){return mk(s,null)});renderAll();startPolling()}
+    if(d.servos&&d.servos.length>0){servos=d.servos.map(function(s){return mk(s,null)});renderAll();startPolling();loadTorqueLimits()}
     setConn(true);
   });
 }
 function mk(s,old){
   return{id:s.id,type:s.type,range:s.range,middle:s.middle,hasCurrent:s.hasCurrent!==false,
     pos:0,goal:0,speed:0,load:0,voltage:0,temp:0,current:0,
-    mode:0,torque:true,step:old?old.step:10,setpoint:old?old.setpoint:-1,inited:old?old.inited:false};
+    mode:0,torque:true,step:old?old.step:10,setpoint:old?old.setpoint:-1,inited:old?old.inited:false,
+    speedSet:old?old.speedSet:500,torqueLimit:old?old.torqueLimit:-1};
 }
 function servoById(id){for(var i=0;i<servos.length;i++)if(servos[i].id===id)return servos[i];return null}
 
@@ -239,6 +253,26 @@ function buildCard(s){
     h+='</div></div>';
   }
   h+='<div style="margin-top:4px">'+stepHtml(s)+'</div>';
+
+  // Quick action buttons
+  h+='<div class="qa-row">';
+  h+='<button class="qa-btn" onclick="quickAction('+s.id+',\'min\')">Min</button>';
+  h+='<button class="qa-btn" onclick="quickAction('+s.id+',\'center\')">Center</button>';
+  h+='<button class="qa-btn" onclick="quickAction('+s.id+',\'max\')">Max</button>';
+  h+='</div>';
+
+  // Speed + torque limit fields
+  h+='<div class="fields-row">';
+  h+='<div class="field-grp"><span class="field-lbl">Speed</span>';
+  h+='<input type="text" class="field-input" id="spd-'+s.id+'" value="'+s.speedSet+'" onblur="commitSpeed('+s.id+',this)" onkeydown="if(event.key===\'Enter\')this.blur()"></div>';
+  if(s.type==='STS'){
+    var tlWarn=s.torqueLimit===1023||s.torqueLimit===-1;
+    h+='<div class="field-grp"><span class="field-lbl">Torque Limit</span>';
+    h+='<input type="text" class="field-input'+(tlWarn?' warn':'')+'" id="tl-inp-'+s.id+'" value="'+(s.torqueLimit>=0?s.torqueLimit:'...')+'" onblur="commitTorqueLimit('+s.id+',this)" onkeydown="if(event.key===\'Enter\')this.blur()">';
+    h+='<span class="field-lbl">/1023</span></div>';
+  }
+  h+='</div>';
+
   h+='</div>'; // pos-block
 
   div.innerHTML=h;return div;
@@ -310,7 +344,41 @@ function toggleTorque(id){
   var x=new XMLHttpRequest();x.open('GET','/api/torque?id='+id+'&enable='+(s.torque?'1':'0'),true);x.send();
 }
 
-function sendPos(id,pos){var x=new XMLHttpRequest();x.open('GET','/api/setpos?id='+id+'&pos='+pos+'&speed=500',true);x.send()}
+function quickAction(id,act){
+  var s=servoById(id);if(!s)return;
+  if(act==='center'){s.setpoint=s.middle;sendPos(id,s.setpoint);syncUI(id)}
+  else if(act==='min'){s.setpoint=0;sendPos(id,s.setpoint);syncUI(id)}
+  else if(act==='max'){s.setpoint=s.range;sendPos(id,s.setpoint);syncUI(id)}
+
+}
+function syncUI(id){
+  var s=servoById(id);if(!s)return;
+  var el=document.getElementById('sp-'+id);if(el)el.value=s.setpoint;
+  var sl=document.getElementById('sl-'+id);if(sl)sl.value=s.setpoint;
+}
+
+function commitSpeed(id,el){
+  var s=servoById(id);if(!s)return;
+  var v=Math.max(0,parseInt(el.value)||0);s.speedSet=v;el.value=v;
+}
+
+function commitTorqueLimit(id,el){
+  var s=servoById(id);if(!s)return;
+  var v=Math.max(0,Math.min(1023,parseInt(el.value)||0));s.torqueLimit=v;el.value=v;
+  el.className='field-input'+(v===1023?' warn':'');
+  api('/api/torque_limit?id='+id+'&value='+v,function(){});
+}
+
+function sendPos(id,pos){var s=servoById(id);var spd=s?s.speedSet:500;var x=new XMLHttpRequest();x.open('GET','/api/setpos?id='+id+'&pos='+pos+'&speed='+spd,true);x.send()}
+
+// Load torque limits for STS servos after scan
+function loadTorqueLimits(){
+  for(var i=0;i<servos.length;i++){
+    if(servos[i].type==='STS')(function(s){
+      api('/api/torque_limit?id='+s.id,function(d){if(d.value!==undefined){s.torqueLimit=d.value;var el=document.getElementById('tl-inp-'+s.id);if(el){el.value=d.value;el.className='field-input'+(d.value===1023?' warn':'')}}});
+    })(servos[i]);
+  }
+}
 
 initialLoad();
 </script>
