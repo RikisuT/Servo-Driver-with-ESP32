@@ -180,23 +180,24 @@ Replace the existing single-servo button-stack UI with the card-per-servo layout
 
 ---
 
-## Phase 4: Presets
+## Phase 4: Servo Naming + Batch Actions
 
-### 4.1 — Preset Bar
+### 4.1 — Servo Naming
 
-- Above the servo cards, show a row: `PRESETS [Center All] [Zero All] [+ Save]`
-- "Center All" sets position=2048 on all servos
-- "Zero All" sets position=0 on all servos
-- "+ Save" captures current position of all servos as a new preset with auto-name ("Snap 1", "Snap 2", etc.)
-- User-created presets show a small × button to delete
-
-**Storage:** Use localStorage on the browser side. These don't need to persist on the ESP32. Note: since users connect via ESP32 AP with no internet, localStorage only persists for that specific browser on that specific phone. This is acceptable for prototyping use.
+- Each card header shows an editable name next to the `#ID` badge
+- Default name: "Servo 5", "Servo 11", etc.
+- Click the name to edit inline, blur or enter to save
+- Names stored in localStorage (keyed by servo ID)
+- Names persist across page reloads on the same browser
 
 **Verification:**
-- [ ] "Center All" moves all servos to center
-- [ ] Move servos to custom positions, tap "+ Save" → new preset button appears
-- [ ] Tap the new preset → servos return to those saved positions
-- [ ] × button removes the preset
+- [ ] Card shows default name "Servo 5" on first visit
+- [ ] Click name, type "Left Shoulder", press enter → name updates
+- [ ] Refresh page → name persists from localStorage
+- [ ] Scan new servo → gets default name
+- [ ] ID still gets shown
+
+
 
 ---
 
@@ -226,22 +227,23 @@ Replace the existing single-servo button-stack UI with the card-per-servo layout
 ### 5.3 — Mode Settings
 
 Group label: **MODE**
-- Operating mode: Servo / Motor toggle buttons
-- Phase (direction reversal): numeric input (0–255)
-- Offset: numeric input (−2048 to 2047)
+- Operating mode: Servo / Motor toggle buttons (both SC and STS)
+- Phase (direction reversal): 0 or 253 (STS only, register 18) — *needs library register addition*
+- Offset: numeric input −2048 to 2047 (STS only, register 31-32)
 
 **Verification:**
 - [ ] Switch mode from Servo to Motor → card UI switches to jog-only for position
-- [ ] Set phase to 253 → servo direction reverses
+- [ ] Set phase to 253 on STS → servo direction reverses
+- [ ] Set offset on STS → position reference shifts
 
 ### 5.4 — Safety Limits (with Capture + Go)
 
 Group label: **SAFETY LIMITS**
 - Min Angle: numeric input + `← Capture` button + `Go →` button
 - Max Angle: numeric input + `← Capture` button + `Go →` button  
-- Max Torque: numeric input (0–1000) — also editable from the main card
-- Min/Max Voltage: numeric inputs
-- Max Temperature: numeric input
+- Max Torque: numeric input (0–1023, STS only) — also editable from the main card
+- Min/Max Voltage: numeric inputs (STS only, registers 14-15, ×0.1V) — *needs library register addition*
+- Max Temperature: numeric input (STS only, register 13, °C) — *needs library register addition*
 
 `← Capture` reads the current actual position and writes it into the field.
 `Go →` sends the servo to that limit value to verify it.
@@ -252,33 +254,34 @@ Group label: **SAFETY LIMITS**
 - [ ] Move to other hard stop, capture as Max Angle
 - [ ] Tap "Go →" on Min Angle → servo travels to that position
 - [ ] Tap "Go →" on Max Angle → servo travels to that position
-- [ ] Set position beyond limits → servo stops at the limit (firmware-enforced)
 
 ### 5.5 — Motion Settings
 
 Group label: **MOTION**
-- Acceleration: numeric input (0–254)
-- Goal Time: numeric input (0–65535 ms)
-- CW / CCW Dead Zones: numeric inputs (0–255)
+- Acceleration: numeric input (0–254, STS only, register 41)
+- CW / CCW Dead Zones: numeric inputs (0–255, both SC and STS, registers 26-27)
 
 **Verification:**
 - [ ] Set acceleration to 100 → servo ramps up/down smoothly instead of jerking
 - [ ] Set acceleration to 0 → motion is immediate/jerky (factory behavior)
 
-### 5.6 — PID Tuning
+### 5.6 — PID Tuning (STS only)
 
 Group label: **PID TUNING**
-- P, I, D: numeric inputs (0–255)
-- Speed P, Speed I: numeric inputs (0–255)
+- P, I, D: numeric inputs (0–255, registers 21-23) — *needs library register addition*
+- Speed P, Speed I: numeric inputs (0–255, registers 37, 39) — *needs library register addition*
 
 **Verification:**
 - [ ] Change P coefficient → servo response changes (more/less aggressive)
-- [ ] This is advanced — verify values write correctly by reading them back
+- [ ] Write values, read back → confirms register access works
 
-### 5.7 — Protection Settings
+### 5.7 — Protection Settings (STS only)
 
 Group label: **PROTECTION**
-- Protection Current, Protective Torque, Overload Torque, Protection Time: numeric inputs
+- Protection Current: numeric input (register 28-29, 2 bytes) — *needs library register addition*
+- Protective Torque: numeric input (register 34) — *needs library register addition*
+- Protection Time: numeric input (register 35) — *needs library register addition*
+- Overload Torque: numeric input (register 36) — *needs library register addition*
 
 **Verification:**
 - [ ] Set protection current low → servo disables under moderate load
@@ -287,13 +290,34 @@ Group label: **PROTECTION**
 ### 5.8 — Actions (Set ID, Set Middle)
 
 Group label: **ACTIONS**
-- Set Middle: button (sets current position as servo center point)
-- Set New ID: text input (1–253) + "Apply" button with orange warning color
+- Set Middle: button (STS only — uses `set_offset()` to set current position as center)
+- Set New ID: text input (1–253) + "Apply" button with orange warning color (both SC and STS)
 
 **Verification:**
 - [ ] Connect single servo (ID 1), type 11 in Set New ID, tap Apply → servo now responds as ID 11
 - [ ] Scan → servo shows up as #11
-- [ ] Set Middle while servo is at position 1000 → 1000 becomes the new center reference
+- [ ] Set Middle while STS servo is off-center → offset adjusts so current position becomes center
+
+### Library work needed
+
+Several STS registers need to be added to the nerd-bus-servo `Register` enum before the UI can use them. SC servos do not have these registers.
+
+| Register | Addr | Size | Needs Adding |
+|----------|------|------|--------------|
+| Max Temp Limit | 13 | 1 | Yes |
+| Max Voltage | 14 | 1 | Yes |
+| Min Voltage | 15 | 1 | Yes |
+| Max Torque (EPROM) | 16 | 2 | Yes |
+| Phase | 18 | 1 | Yes |
+| P Coefficient | 21 | 1 | Yes |
+| D Coefficient | 22 | 1 | Yes |
+| I Coefficient | 23 | 1 | Yes |
+| Protection Current | 28 | 2 | Yes |
+| Protective Torque | 34 | 1 | Yes |
+| Protection Time | 35 | 1 | Yes |
+| Overload Torque | 36 | 1 | Yes |
+| Speed P | 37 | 1 | Yes |
+| Speed I | 39 | 1 | Yes |
 
 ---
 

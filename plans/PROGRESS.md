@@ -155,43 +155,62 @@ All sub-tasks were implemented as part of Phase 1 UI work.
 
 ---
 
-## Phase 4: Presets — NOT STARTED
+## Phase 4: Servo Naming + Batch Actions — NOT STARTED
 
-**Goal:** Add preset bar above servo cards for saving/restoring positions.
+**Goal:** Add editable servo names (localStorage) and batch action buttons.
 
 **Files to modify:**
-- `src/WEBPAGE.h` — add preset bar UI and localStorage logic (browser-side only)
+- `src/WEBPAGE.h` — add editable name in card header, batch action bar, localStorage logic
 
 **Sub-tasks:**
-- [ ] **4.1** Preset bar: "Center All", "Zero All" built-in
-- [ ] **4.1** "+ Save" captures all servo positions as a named preset
-- [ ] **4.1** User presets stored in localStorage, deletable with × button
-- [ ] **4.1** Applying a preset sends position commands to all servos
+- [ ] **4.1** Editable servo name in card header (click to edit, localStorage persistence)
+- [ ] **4.2** Batch action bar: "Center All", "Zero All" buttons above cards
 
 **Verification:** See IMPLEMENTATION_PLAN.md Phase 4 checklists.
 
 ---
 
-## Phase 5: Config Section (Collapsible) — NOT STARTED
+## Phase 5: Config Section (Collapsible) — PARTIALLY COMPLETE
 
-**Goal:** Add expandable config section per servo card for EEPROM settings, safety limits, PID, protection, mode, and actions.
+**Goal:** Expandable config section per servo card for EEPROM settings, safety limits, motion, PID, protection, mode, and actions.
 
 **Files to modify:**
-- `src/WEBPAGE.h` — add collapsible config UI per card
-- `src/CONNECT.h` — add API endpoints: `/api/writereg`, `/api/lockeeprom`, `/api/unlockeeprom`, `/api/setid`, `/api/setmiddle`
-- `src/STSCTRL.h` — nerd-bus-servo already provides `write_byte()`, `read_byte()`, `set_offset()`, `set_torque_limit()`, etc.
+- `lib/nerd-bus-servo/servo_bus_api.h` — add missing STS register definitions (see table below)
+- `src/WEBPAGE.h` — expand collapsible config UI per card
+- `src/CONNECT.h` — add API endpoints: `/api/writereg`, `/api/lockeeprom`, `/api/unlockeeprom`, `/api/setmiddle`
 
 **Sub-tasks:**
-- [ ] **5.1** Collapsible `▶ CONFIG` container
-- [ ] **5.2** EEPROM Lock/Unlock button
-- [ ] **5.3** Mode settings (Servo/Motor, Phase, Offset)
-- [ ] **5.4** Safety limits with Capture + Go buttons (Min/Max Angle, Max Torque, Voltage, Temp)
-- [ ] **5.5** Motion settings (Acceleration, Goal Time, Dead Zones)
-- [ ] **5.6** PID Tuning (P, I, D, Speed P, Speed I)
-- [ ] **5.7** Protection settings
-- [ ] **5.8** Actions: Set Middle, Set New ID
+- [x] **5.1** Collapsible `▶ CONFIG` container (already in UI)
+- [ ] **5.2** EEPROM Lock/Unlock button + warning badge
+- [ ] **5.3** Mode settings: Servo/Motor toggle (both), Phase (STS, *needs reg 18*), Offset (STS)
+- [x] **5.4a** Angle limit fields with Save button (already in UI, `/api/angle_limits` exists)
+- [ ] **5.4b** Capture + Go buttons for angle limits
+- [ ] **5.4c** Max Torque field in config (STS only)
+- [ ] **5.4d** Voltage limits (STS, *needs regs 14-15*), Temp limit (STS, *needs reg 13*)
+- [ ] **5.5** Motion: Acceleration (STS), CW/CCW Dead Zones (both)
+- [ ] **5.6** PID Tuning: P/I/D, Speed P/I (STS, *needs regs 21-23, 37, 39*)
+- [ ] **5.7** Protection: current, torque, overload, time (STS, *needs regs 28, 34-36*)
+- [x] **5.8a** Set New ID (already in UI, `/api/set_id` exists)
+- [ ] **5.8b** Set Middle button (STS only, uses `set_offset()`)
 
-**Note:** Many config registers (Mode, Offset, ACC, PID, Protection) only exist on STS servos, not SC. The UI must check `servo.type` and hide/disable unavailable fields for SC servos. The nerd-bus-servo library's `ServoBusApi::write_byte()` already validates register/type compatibility at runtime and will reject invalid register writes with `ServoError::invalid_parameter`. Use the generic `/api/writereg` endpoint with the library's `write_byte()`/`writeWord()` — byte order is handled automatically.
+**Library registers to add** (all STS-only, EPROM unless noted):
+
+| Register | Addr | Size |
+|----------|------|------|
+| Max Temp Limit | 13 | 1 |
+| Max Voltage | 14 | 1 |
+| Min Voltage | 15 | 1 |
+| Max Torque (EPROM) | 16 | 2 |
+| Phase | 18 | 1 |
+| P Coefficient | 21 | 1 |
+| D Coefficient | 22 | 1 |
+| I Coefficient | 23 | 1 |
+| Protection Current | 28 | 2 |
+| Protective Torque | 34 | 1 |
+| Protection Time | 35 | 1 |
+| Overload Torque | 36 | 1 |
+| Speed P | 37 | 1 |
+| Speed I | 39 | 1 |
 
 **Verification:** See IMPLEMENTATION_PLAN.md Phase 5 checklists.
 
@@ -213,7 +232,7 @@ All sub-tasks were implemented as part of Phase 1 UI work.
 
 ---
 
-## Phase 7: Polish + Mobile Optimization — NOT STARTED
+## Phase 7: Polish + Mobile Optimization — MOSTLY COMPLETE
 
 **Goal:** Responsive layout, connection status, font cleanup.
 
@@ -221,11 +240,10 @@ All sub-tasks were implemented as part of Phase 1 UI work.
 - `src/WEBPAGE.h` — responsive CSS, status indicator, system font stacks
 
 **Sub-tasks:**
-- [ ] **7.1** Responsive layout for 360–414px phone screens
-- [ ] **7.2** Connection status indicator (green/red dot), retry on disconnect
-- [ ] **7.2** "Scanning…" state on Scan button
-- [ ] **7.3** Remove Google Fonts, use system font stacks only
-- [ ] **7.3** Verify full functionality in airplane mode (ESP32 AP only)
+- [x] **7.1** Responsive dark theme layout (already implemented, max-width ~800px)
+- [x] **7.2** Connection status indicator (green/red dot in header, already implemented)
+- [x] **7.3** System font stacks only, no Google Fonts (already implemented)
+- [ ] **7.x-TEST** Verify full functionality in airplane mode (ESP32 AP only, no internet)
 
 **Verification:** See IMPLEMENTATION_PLAN.md Phase 7 checklists.
 
