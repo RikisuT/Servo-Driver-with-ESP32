@@ -1,7 +1,7 @@
-// https://randomnerdtutorials.com/esp32-useful-wi-fi-functions-arduino/
+#pragma once
 #include <WiFi.h>
 #include <WebServer.h>
-#include "WEBPAGE.h"
+#include "webpage.h"
 
 
 WebServer server(80);
@@ -74,6 +74,11 @@ void webCtrlServer(){
       server.send(404, "application/json", "{\"error\":\"servo not found\"}");
       return;
     }
+
+    int range = servos[id]->full_range();
+    pos = constrain(pos, 0, range);
+    speed = constrain(speed, 1, (int)ServoMaxSpeed);
+    acc = constrain(acc, 0, 255);
 
     servoWritePosEx(id, pos, speed, acc);
     server.send(200, "application/json", "{\"ok\":true}");
@@ -170,6 +175,11 @@ void webCtrlServer(){
     if(server.hasArg("min") && server.hasArg("max")){
       int minVal = server.arg("min").toInt();
       int maxVal = server.arg("max").toInt();
+      int range = servos[id]->full_range();
+      if(minVal < 0 || maxVal < 0 || minVal > range || maxVal > range || minVal >= maxVal){
+        server.send(400, "application/json", "{\"error\":\"invalid angle limits\"}");
+        return;
+      }
       bool ok = servos[id]->write_angle_limits((uint16_t)minVal, (uint16_t)maxVal);
       if(ok){
         server.send(200, "application/json", "{\"ok\":true}");
@@ -198,7 +208,7 @@ void webCtrlServer(){
       server.send(404, "application/json", "{\"error\":\"servo not found\"}");
       return;
     }
-    if(newId < 0 || newId > 253){
+    if(newId < 0 || newId > 252){
       server.send(400, "application/json", "{\"error\":\"new_id out of range\"}");
       return;
     }

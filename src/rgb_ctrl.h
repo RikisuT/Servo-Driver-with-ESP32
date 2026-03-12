@@ -1,7 +1,6 @@
-
-// WS2812:
+#pragma once
 #include <Adafruit_NeoPixel.h>
-#define BRIGHTNESS  255
+static constexpr int BRIGHTNESS = 255;
 
 
 Adafruit_NeoPixel matrix = Adafruit_NeoPixel(NUMPIXELS, RGB_LED, NEO_GRB + NEO_KHZ800);

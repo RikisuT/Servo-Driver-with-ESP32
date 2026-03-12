@@ -1,13 +1,7 @@
+#pragma once
 #include "sc_servo.h"
 #include "sts_servo.h"
 #include <math.h>
-
-// servo_bus is the global ServoBusApi instance (defined at end of servo_bus_api.h)
-
-// Compatibility typedefs (were in old SCServo INST.h)
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef short s16;
 
 
 // === Servo configuration ===
@@ -50,19 +44,17 @@ inline Servo* servoForId(uint8_t id) {
 }
 
 
-// set the servo ID list.
-byte ID_List[253];
 bool Torque_List[253];
 
 // Feedback buffers indexed by servo ID
-s16  loadRead[253];
-s16  speedRead[253];
-byte voltageRead[253];
-int  currentRead[253];
-s16  posRead[253];
-s16  goalRead[253];
-s16  modeRead[253];
-s16  temperRead[253];
+int16_t  loadRead[253];
+int16_t  speedRead[253];
+byte     voltageRead[253];
+int      currentRead[253];
+int16_t  posRead[253];
+int16_t  goalRead[253];
+int16_t  modeRead[253];
+int16_t  temperRead[253];
 
 // Active servo list & search state
 byte listID[253];
@@ -71,26 +63,22 @@ bool searchedStatus = false;
 bool searchFinished = false;
 bool searchCmd      = false;
 byte activeNumInList = 0;
-s16 activeServoSpeed = 100;
-
-// linkageBuffer to save the angle.
-float linkageBuffer[50];
+int16_t activeServoSpeed = 100;
 
 
 // ----------- Core functions -----------
 
-void servoWritePosEx(byte id, s16 position, u16 speed, u8 acc) {
+void servoWritePosEx(byte id, uint16_t position, uint16_t speed, uint8_t acc) {
   auto* s = servoForId(id);
   if (s->type() == ServoBusApi::ServoType::STS && acc > 0 && s->info_loaded()) {
-    static_cast<STSServo*>(s)->move_to_encoder_angle_with_accel(
-        (uint16_t)abs(position) | (position < 0 ? (1 << 15) : 0), speed, acc);
+    static_cast<STSServo*>(s)->move_to_encoder_angle_with_accel(position, speed, acc);
   } else {
     servo_bus.set_servo_type(s->type());
-    servo_bus.write_position(id, (uint16_t)position, 0, speed);
+    servo_bus.write_position(id, position, 0, speed);
   }
 }
 
-void servoWritePos(byte id, u16 position, u16 time_ms, u16 speed) {
+void servoWritePos(byte id, uint16_t position, uint16_t time_ms, uint16_t speed) {
   auto* s = servoForId(id);
   servo_bus.set_servo_type(s->type());
   servo_bus.write_position(id, position, time_ms, speed);
@@ -117,7 +105,7 @@ void getFeedBack(byte servoID) {
   if (volt) voltageRead[servoID] = (byte)(*volt * 10);  // store as raw (tenths of volts)
 
   auto temp = s->read_temperature();
-  if (temp) temperRead[servoID] = (s16)*temp;
+  if (temp) temperRead[servoID] = (int16_t)*temp;
 
   auto cur = s->read_current();
   if (cur) currentRead[servoID] = *cur;
@@ -199,7 +187,7 @@ void servoStop(byte servoID) {
 }
 
 
-void servoTorque(byte servoID, u8 enableCMD) {
+void servoTorque(byte servoID, uint8_t enableCMD) {
   auto* s = servoForId(servoID);
   if (enableCMD) {
     s->enable_torque();

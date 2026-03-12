@@ -1,13 +1,14 @@
+#pragma once
 #include <Wire.h>
 TaskHandle_t ScreenUpdateHandle;
 TaskHandle_t ClientCmdHandle;
 
-// SSD1306: 0x3C
+// SSD1306
 #include <Adafruit_SSD1306.h>
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 32 // OLED display height, in pixels, 32 as default.
-#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+static constexpr int SCREEN_WIDTH   = 128;
+static constexpr int SCREEN_HEIGHT  = 32;
+static constexpr int OLED_RESET     = -1;
+static constexpr int SCREEN_ADDRESS = 0x3C;
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 
