@@ -166,6 +166,11 @@ All sub-tasks were implemented as part of Phase 1 UI work.
 - [x] Reduced client thread delay from 10ms to 1ms
 - [x] Manual hardware test — PASSED 2026-03-11
 
+## Bug Fixes — COMPLETE
+
+- [x] **EEPROM write timeout:** `write_angle_limits`, `enable_motor_mode`, `restore_position_mode` were failing (500 error) because 2ms ACK timeout was too short for EEPROM operations. Fixed in library: `unlock_eeprom` now sets 50ms timeout, `lock_eeprom` restores it. Added `delay(10)` between unlock/write/lock steps.
+- [x] **Limit markers not updating after save:** `saveLimits()` JS now updates markers on successful write. Removed debug console.log.
+
 ---
 
 ## Phase 4: Servo Naming + Batch Actions — NOT STARTED
