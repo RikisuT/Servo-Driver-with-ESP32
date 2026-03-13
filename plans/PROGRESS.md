@@ -199,32 +199,32 @@ All sub-tasks were implemented as part of Phase 1 UI work.
 - [x] **5.4a** Angle limit fields with Save button (already in UI, `/api/angle_limits` exists)
 - [ ] **5.4b** Capture + Go buttons for angle limits
 - [ ] **5.4c** Max Torque field in config (STS only)
-- [ ] **5.4d** Voltage limits (STS, *needs regs 14-15*), Temp limit (STS, *needs reg 13*)
+- [x] **5.4d** Safety Limits: Max Temp (°C), Min/Max Voltage (V, ×0.1), Max Torque EPROM (/1000). STS only.
 - [ ] **5.5** Motion: Acceleration (STS), CW/CCW Dead Zones (both)
 - [ ] **5.6** PID Tuning: P/I/D, Speed P/I (STS, *needs regs 21-23, 37, 39*)
-- [ ] **5.7** Protection: current, torque, overload, time (STS, *needs regs 28, 34-36*)
+- [x] **5.7** Protection: current (0-65535), torque (0-255), time (0-255), overload (0-255). STS only. `/api/safety` endpoint. Lazy-loaded on config open.
 - [x] **5.8a** Set New ID (already in UI, `/api/set_id` exists)
 - [x] **5.8c** Servo naming — editable display name per servo, stored in ESP32 NVS, shown in card header and config. Names migrate on ID change.
 - [ ] **5.8b** Set Middle button (STS only, uses `set_offset()`)
 
 **Library registers to add** (all STS-only, EPROM unless noted):
 
-| Register | Addr | Size |
-|----------|------|------|
-| Max Temp Limit | 13 | 1 |
-| Max Voltage | 14 | 1 |
-| Min Voltage | 15 | 1 |
-| Max Torque (EPROM) | 16 | 2 |
-| Phase | 18 | 1 |
-| P Coefficient | 21 | 1 |
-| D Coefficient | 22 | 1 |
-| I Coefficient | 23 | 1 |
-| Protection Current | 28 | 2 |
-| Protective Torque | 34 | 1 |
-| Protection Time | 35 | 1 |
-| Overload Torque | 36 | 1 |
-| Speed P | 37 | 1 |
-| Speed I | 39 | 1 |
+| Register | Addr | Size | Status |
+|----------|------|------|--------|
+| Max Temp Limit | 13 | 1 | ✅ Added |
+| Max Voltage | 14 | 1 | ✅ Added |
+| Min Voltage | 15 | 1 | ✅ Added |
+| Max Torque (EPROM) | 16 | 2 | ✅ Added |
+| Phase | 18 | 1 | |
+| P Coefficient | 21 | 1 | |
+| D Coefficient | 22 | 1 | |
+| I Coefficient | 23 | 1 | |
+| Protection Current | 28 | 2 | ✅ Added |
+| Protective Torque | 34 | 1 | ✅ Added |
+| Protection Time | 35 | 1 | ✅ Added |
+| Overload Torque | 36 | 1 | ✅ Added |
+| Speed P | 37 | 1 | |
+| Speed I | 39 | 1 | |
 
 **Verification:** See IMPLEMENTATION_PLAN.md Phase 5 checklists.
 
