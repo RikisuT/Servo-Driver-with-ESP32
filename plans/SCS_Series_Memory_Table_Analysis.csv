@@ -1,0 +1,55 @@
+,,,Firmware SCServo1.1-STM8-TTL(181129).bin (Firmware version：0.5),,,,,,,,,
+,,,No-load speed（RPM),,54 ,,Test voltage (v),,,7.4,,
+,,,No-load speed（step/s）,,1500,,No-load Current (mA),,,150,,
+,,,Maximum effective angle (degree),,220,,,,,,,
+,,,Resolution (step),,1024,,,,,,,
+,,,Minimum resolution angle (degree/step),,0.21484375,,,,,,,
+,,Memory Address,,Function,Number of bytes,Initial value,Storage Area,Permission,Minimum value,Maximum value,Unit,Value Parsing
+0x,,DEC,HEX,,Big-Endian,,,,,,,"If the function address is represented by two bytes of data, the high-byte comes before the low-byte in the address."
+0,,0,0x0,Firmware major version number,1,0,EPROM,read,0,253,,
+1,,1,0x1,Firmware minor version number,1,5,EPROM,read,0,253,,
+3,,3,0x3,Servo major version number,1,5,EPROM,read,0,253,,
+4,,4,0x4,Servo minor version number,1,15,EPROM,read/write,0,253,,
+5,,5,0x5,ID,1,1,EPROM,read/write,0,253,,"A unique identification code on the bus, with no duplicate ID numbers allowed on the same bus. ID number 254 (0xFE) is the broadcast ID, and broadcasts do not return response packets."
+6,,6,0x6,Baudrate,1,0,EPROM,read/write,0,7,,"0-7 respectively represent baud rates as follows: 1000000, 500000, 250000, 128000, 115200, 76800, 57600 and 38400."
+7,,7,0x7,Return delay,1,0,EPROM,read/write,0,254,2us,"The minimum unit is 2us, and settable maximum  value for response delay is 254*2=508us"
+8,,8,0x8,Response status level,1,1,EPROM,read/write,0,1,None,"0: Except for read and PING commands, other commands do not return response packets.
+1: Return response packets for all commands"
+9,,9,0x9,Minimum angle ,2,20,EPROM,read/write,0,1022,step,"Set the minimum value limit for the operation angle, which should be smaller than the maximum angle limit. This value is set to 0 in motor mode."
+B,,11,0xB,Maximum angle,2,1003,EPROM,read/write,0,1023,step,"Set the maximum value limit for the operation angle, which should be greater than the minimum angle limit. This value is set to 0 in motor mode."
+D,,13,0xD,Maximum temperature,1,80,EPROM,read/write,0,100,°C,"The maximum operating temperature limit, when set to 80, means the maximum temperature is 80 degrees Celsius, with a precision setting of 1 degree Celsius."
+E,,14,0xE,Maximum input voltage,1,90,EPROM,read/write,0,254,0.1V,"If the maximum input voltage is set to 90, then the maximum operating voltage limit is 9.0V, with a precision of 0.1V."
+F,,15,0xF,Minimum input voltage,1,45,EPROM,read/write,0,254,0.1V,"If the minimum input voltage is set to 50, then the minimum operating voltage limit is 5.0V, with a precision of 0.1V."
+10,,16,0x10,Maximum torque,2,1000,EPROM,read/write,0,1000,0.1%,"Set the maximum output torque limit for the servo motor, 1000 = 100% * stall torque"
+12,,18,0x12,Phase,1,0,EPROM,read/write,0,254,None,"Special function byte, do not modify unless there are specific requirements. Please refer to the special byte bit analysis for further details."
+13,,19,0x13,Unloading conditions,1,36,EPROM,read/write,0,254,None,"Bit0         Bit1     Bit2               Bit3     Bit4   Bit5                           The corresponding bit sets 0 to disable the corresponding protection.                            
+Voltage None Temperature None None Overload                    The corresponding bit sets 1 to enable the corresponding protection."
+14,,20,0x14,LED alarm condition,1,37,EPROM,read/write,0,254,None,"Bit0        Bit1        Bit2               Bit3     Bit4     Bit5                        The corresponding bit sets 1 to enable the flashing light alarm.
+Voltage None Temperature None None Overload                   The corresponding bit sets 0 to disable the flashing light alarm."
+15,,21,0x15,P (proportional) coefficient,1,15,EPROM,read/write,0,254,None,Proportional coefficient of the control motor
+16,,22,0x16, D (derivative) coefficient ,1,15,EPROM,read/write,0,254,None,Differential coefficient of the control motor
+17,,23,0x17, I (integral) coefficient ,1,0,EPROM,read/write,0,254,None,Integral coefficient of the control motor
+18,,24,0x18,Minimum starting force,2,30,EPROM,read/write,0,1000,0.1%,"Set the minimum output torque limit of the servo, set 1000 = 100% * locked-rotor torque"
+1A,,26,0x1A,Clockwise insensitive zone,1,1,EPROM,read/write,0,32,Step,Minimum unit is a minimum resolution angle
+1B,,27,0x1B,Anticlockwise insensitive zone,1,1,EPROM,read/write,0,32,Step,Minimum unit is a minimum resolution angle
+1C,,28,0x1C,Hysteresis loop,1,1,EPROM,read/write,0,32,Step,Minimum unit is a minimum resolution angle
+25,,37,0x25,Protection torque,1,20,EPROM,read/write,0,100,1.0%,"Output torque after entering overload protection, e.g. set 20 means 20% of the maximum torque."
+26,,38,0x26,Protection time,1,100,EPROM,read/write,0,254,40ms,"The current load output exceeds the overload torque and maintain the timing length, such as set 100 means 4 seconds, the maximum can be set to 10 seconds."
+27,,39,0x27,Overload torque,1,80,EPROM,read/write,0,100,1.0%,"The maximum torque threshold for initiating the overload protection time countdown. For example, if set to 80, it represents 80% of the maximum torque."
+28,,40,0x28,Torque switch,1,0,SRAM,read/write,0,3,None,"0: Disables torque output/damping state.
+1: Enables torque output.
+2: Writes the free state."
+2A,,42,0x2A,Target position,2,0,SRAM,read/write,0,1023,Syep,"Each step corresponds to the value of the minimum resolution angle, and it is used in absolute position control mode. The maximum value shoulf be the maximum effective angle."
+2C,,44,0x2C,Operation time,2,0,SRAM,read/write,0,9999,1ms,"The movement time from the current position to the target position, takes effect when the running speed is 0."
+2E,,46,0x2E,Operation speed,2,0,SRAM,read/write,0,1000,step/s,The number of steps moved per unit time (per second).
+30,,48,0x30,Lock flag,1,1,SRAM,read/write,0,1,None,"Writing 0 disables the write lock, allowing the values written to EPROM addresses to be saved even when power is lost.
+Writing 1 enables the write lock, preventing the values written to EPROM addresses from being saved when power is lost."
+38,,56,0x38,Current position,2,0,SRAM,read only,-1,-1,Step,"Feedback the number of steps in the current position, each step is the value of the minimum resolution angle; Absolute position control mode, the maximum value should be the maximum effective angle."
+3A,,58,0x3A,Current speed,2,0,SRAM,read only,-1,-1,step/s,"Feedback the current speed of motor rotation, the number of steps of movement per unit time (per second)."
+3C,,60,0x3C,Current load,2,0,SRAM,read only,-1,-1,0.1%,The voltage duty cycle of the current control output driving motor.
+3E,,62,0x3E,Current voltage,1,0,SRAM,read only,-1,-1,0.1V,Current servo operation voltage
+3F,,63,0x3F,Current temperature,1,0,SRAM,read only,-1,-1,°C,Current internal operating circuit of the servo
+40,,64,0x40,Asynchronous write flag,1,0,SRAM,read only,-1,-1,None,The flag bit for using asynchronous write instructions.
+41,,65,0x41,Servo status,1,0,SRAM,read only,-1,-1,None,"Bit0        Bit1      Bit2               Bit3     Bit4    Bit5                          The corresponding bit is set to 1 to indicate the corresponding error.
+Voltage None Temperature None None Overload                   The corresponding bit 0 means no phase error."
+42,,66,0x42,Move flag,1,0,SRAM,read only,-1,-1,None,The flag is 1 when the servo is in motion and 0 when the servo is stopped.

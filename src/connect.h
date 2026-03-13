@@ -63,6 +63,7 @@ void webCtrlServer(){
       json += ",\"mode\":" + String(modeRead[id]);
       json += ",\"torque\":" + String(Torque_List[id] ? "true" : "false");
       json += ",\"range\":" + String(s ? s->full_range() : (int)ServoDigitalRange);
+      json += ",\"alarm\":" + String(alarmRead[id]);
       json += "}";
     }
     json += "]}";
@@ -260,35 +261,52 @@ void webCtrlServer(){
       server.send(404, "application/json", "{\"error\":\"servo not found\"}");
       return;
     }
-    if(servos[id]->type() != ServoBusApi::ServoType::STS){
-      server.send(400, "application/json", "{\"error\":\"STS only\"}");
-      return;
-    }
-    auto* sts = static_cast<STSServo*>(servos[id]);
+    bool is_sts = servos[id]->type() == ServoBusApi::ServoType::STS;
     if(server.hasArg("max_temp")){
-      STSServo::SafetyConfig cfg;
-      cfg.max_temp = constrain(server.arg("max_temp").toInt(), 0, 255);
-      cfg.max_voltage = constrain(server.arg("max_voltage").toInt(), 0, 255);
-      cfg.min_voltage = constrain(server.arg("min_voltage").toInt(), 0, 255);
-      cfg.max_torque = constrain(server.arg("max_torque").toInt(), 0, 1000);
-      cfg.protection_current = constrain(server.arg("prot_current").toInt(), 0, 511);
-      cfg.protective_torque = constrain(server.arg("prot_torque").toInt(), 0, 100);
-      cfg.protection_time = constrain(server.arg("prot_time").toInt(), 0, 254);
-      cfg.overload_torque = constrain(server.arg("overload_torque").toInt(), 0, 100);
-      cfg.overcurrent_prot_time = constrain(server.arg("overcurrent_time").toInt(), 0, 254);
-      cfg.unload_conditions = constrain(server.arg("unload").toInt(), 0, 63);
-      cfg.led_alarm_conditions = constrain(server.arg("led_alarm").toInt(), 0, 63);
-      xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
-      bool ok = sts->write_safety_config(cfg);
-      xSemaphoreGive(servo_bus_mutex);
+      bool ok = false;
+      if(is_sts){
+        auto* sts = static_cast<STSServo*>(servos[id]);
+        STSServo::SafetyConfig cfg;
+        cfg.max_temp = constrain(server.arg("max_temp").toInt(), 0, 255);
+        cfg.max_voltage = constrain(server.arg("max_voltage").toInt(), 0, 255);
+        cfg.min_voltage = constrain(server.arg("min_voltage").toInt(), 0, 255);
+        cfg.max_torque = constrain(server.arg("max_torque").toInt(), 0, 1000);
+        cfg.protection_current = constrain(server.arg("prot_current").toInt(), 0, 511);
+        cfg.protective_torque = constrain(server.arg("prot_torque").toInt(), 0, 100);
+        cfg.protection_time = constrain(server.arg("prot_time").toInt(), 0, 254);
+        cfg.overload_torque = constrain(server.arg("overload_torque").toInt(), 0, 100);
+        cfg.overcurrent_prot_time = constrain(server.arg("overcurrent_time").toInt(), 0, 254);
+        cfg.unload_conditions = constrain(server.arg("unload").toInt(), 0, 63);
+        cfg.led_alarm_conditions = constrain(server.arg("led_alarm").toInt(), 0, 63);
+        xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
+        ok = sts->write_safety_config(cfg);
+        xSemaphoreGive(servo_bus_mutex);
+      } else {
+        auto* sc = static_cast<SCServo*>(servos[id]);
+        SCServo::SafetyConfig cfg;
+        cfg.max_temp = constrain(server.arg("max_temp").toInt(), 0, 100);
+        cfg.max_voltage = constrain(server.arg("max_voltage").toInt(), 0, 254);
+        cfg.min_voltage = constrain(server.arg("min_voltage").toInt(), 0, 254);
+        cfg.max_torque = constrain(server.arg("max_torque").toInt(), 0, 1000);
+        cfg.protective_torque = constrain(server.arg("prot_torque").toInt(), 0, 100);
+        cfg.protection_time = constrain(server.arg("prot_time").toInt(), 0, 254);
+        cfg.overload_torque = constrain(server.arg("overload_torque").toInt(), 0, 100);
+        cfg.unload_conditions = constrain(server.arg("unload").toInt(), 0, 37);
+        cfg.led_alarm_conditions = constrain(server.arg("led_alarm").toInt(), 0, 37);
+        xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
+        ok = sc->write_safety_config(cfg);
+        xSemaphoreGive(servo_bus_mutex);
+      }
       if(ok) server.send(200, "application/json", "{\"ok\":true}");
       else server.send(500, "application/json", "{\"error\":\"write failed\"}");
     } else {
-      xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
-      auto cfg = sts->read_safety_config();
-      xSemaphoreGive(servo_bus_mutex);
-      if(cfg){
-        String json = "{";
+      String json = "{";
+      if(is_sts){
+        auto* sts = static_cast<STSServo*>(servos[id]);
+        xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
+        auto cfg = sts->read_safety_config();
+        xSemaphoreGive(servo_bus_mutex);
+        if(!cfg){ server.send(500, "application/json", "{\"error\":\"read failed\"}"); return; }
         json += "\"max_temp\":" + String(cfg->max_temp);
         json += ",\"max_voltage\":" + String(cfg->max_voltage);
         json += ",\"min_voltage\":" + String(cfg->min_voltage);
@@ -300,11 +318,24 @@ void webCtrlServer(){
         json += ",\"overcurrent_time\":" + String(cfg->overcurrent_prot_time);
         json += ",\"unload\":" + String(cfg->unload_conditions);
         json += ",\"led_alarm\":" + String(cfg->led_alarm_conditions);
-        json += "}";
-        server.send(200, "application/json", json);
       } else {
-        server.send(500, "application/json", "{\"error\":\"read failed\"}");
+        auto* sc = static_cast<SCServo*>(servos[id]);
+        xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
+        auto cfg = sc->read_safety_config();
+        xSemaphoreGive(servo_bus_mutex);
+        if(!cfg){ server.send(500, "application/json", "{\"error\":\"read failed\"}"); return; }
+        json += "\"max_temp\":" + String(cfg->max_temp);
+        json += ",\"max_voltage\":" + String(cfg->max_voltage);
+        json += ",\"min_voltage\":" + String(cfg->min_voltage);
+        json += ",\"max_torque\":" + String(cfg->max_torque);
+        json += ",\"prot_torque\":" + String(cfg->protective_torque);
+        json += ",\"prot_time\":" + String(cfg->protection_time);
+        json += ",\"overload_torque\":" + String(cfg->overload_torque);
+        json += ",\"unload\":" + String(cfg->unload_conditions);
+        json += ",\"led_alarm\":" + String(cfg->led_alarm_conditions);
       }
+      json += "}";
+      server.send(200, "application/json", json);
     }
   });
 

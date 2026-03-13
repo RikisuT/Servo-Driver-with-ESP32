@@ -58,6 +58,7 @@ int16_t  posRead[253];
 int16_t  goalRead[253];
 int16_t  modeRead[253];
 int16_t  temperRead[253];
+uint8_t  alarmRead[253];
 
 // Active servo list & search state
 byte listID[253];
@@ -123,6 +124,9 @@ void getFeedBack(byte servoID) {
 
   auto torq = s->is_torque_enabled();
   if (torq) Torque_List[servoID] = *torq;
+
+  auto alarm = s->read_alarm_status();
+  if (alarm) alarmRead[servoID] = *alarm;
   xSemaphoreGive(servo_bus_mutex);
 }
 

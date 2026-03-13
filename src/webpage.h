@@ -46,6 +46,7 @@ input{font-family:var(--mono)}
 .name-inline::placeholder{color:var(--dim);font-weight:400}
 .mode-badge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700;background:rgba(108,140,255,0.12);color:var(--accent)}
 .moving-badge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700;background:rgba(80,200,120,0.12);color:var(--green);animation:pulse 1.5s ease-in-out infinite}
+.alarm-badge{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:700;background:rgba(232,93,93,0.15);color:var(--red);animation:pulse 1.5s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
 
 /* Torque toggle */
@@ -210,7 +211,7 @@ function initialLoad(){
 function mk(s,old){
   return{id:s.id,type:s.type,range:s.range,middle:s.middle,hasCurrent:s.hasCurrent!==false,
     name:s.name||old&&old.name||'',
-    pos:0,goal:0,speed:0,load:0,voltage:0,temp:0,current:0,
+    pos:0,goal:0,speed:0,load:0,voltage:0,temp:0,current:0,alarm:0,
     mode:0,torque:true,step:old?old.step:10,setpoint:old?old.setpoint:-1,inited:old?old.inited:false,
     speedSet:old?old.speedSet:500,torqueLimit:old?old.torqueLimit:-1,
     limMin:old?old.limMin:-1,limMax:old?old.limMax:-1,
@@ -226,7 +227,7 @@ function pollStatus(){
     for(var i=0;i<d.servos.length;i++){
       var sd=d.servos[i],s=servoById(sd.id);if(!s)continue;
       s.pos=sd.pos;s.goal=sd.goal;s.speed=sd.speed;s.load=sd.load;
-      s.voltage=sd.voltage;s.temp=sd.temp;s.current=sd.current;
+      s.voltage=sd.voltage;s.temp=sd.temp;s.current=sd.current;s.alarm=sd.alarm||0;
       s.mode=sd.mode;s.torque=sd.torque;s.range=sd.range;
       if(!s.inited){s.setpoint=s.pos;s.inited=true;rebuildCard(s)}
       updateCard(s);
@@ -250,13 +251,14 @@ function buildCard(s){
   h+='<input type="text" class="name-inline" id="name-'+s.id+'" value="'+(s.name||'')+'" maxlength="20" placeholder="\u2014" onblur="commitName('+s.id+',this)" onkeydown="if(event.key===\'Enter\')this.blur()">';
   h+='<span class="mode-badge" id="mode-'+s.id+'">'+(isM?'Motor':'Servo')+'</span>';
   h+='<span class="moving-badge" id="moving-'+s.id+'" style="display:none">Moving</span>';
+  h+='<span class="alarm-badge" id="alarm-'+s.id+'" style="display:none"></span>';
   h+='<button class="torque-btn '+(s.torque?'torque-on':'torque-off')+'" id="tbtn-'+s.id+'" onclick="toggleTorque('+s.id+')">';
   h+='<span class="torque-dot"></span>Torque</button></div>';
 
   // Telemetry
   h+='<div class="telem">';
   h+='<span><span class="tl">V </span><span id="tv-'+s.id+'">'+fv(s.voltage)+'</span></span>';
-  h+='<span><span class="tl">Load </span><span id="tl-'+s.id+'">'+s.load+'</span></span>';
+  h+='<span><span class="tl">Load </span><span id="tl-'+s.id+'">'+(s.load/10).toFixed(0)+'%</span></span>';
   h+='<span><span class="tl">Temp </span><span id="tt-'+s.id+'">'+s.temp+'\u00b0</span></span>';
   if(s.hasCurrent)h+='<span><span class="tl">mA </span><span id="tc-'+s.id+'">'+s.current+'</span></span>';
   h+='</div>';
@@ -307,8 +309,8 @@ h+='<div class="limit-marker limit-max" id="lm-max-'+s.id+'" style="left:'+(s.li
   if(s.type==='STS'){
     var tlWarn=s.torqueLimit===1023||s.torqueLimit===-1;
     h+='<div class="field-grp"><span class="field-lbl">Torque Limit</span>';
-    h+='<input type="text" class="field-input'+(tlWarn?' warn':'')+'" id="tl-inp-'+s.id+'" value="'+(s.torqueLimit>=0?s.torqueLimit:'...')+'" onblur="commitTorqueLimit('+s.id+',this)" onkeydown="if(event.key===\'Enter\')this.blur()">';
-    h+='<span class="field-lbl">/1023</span></div>';
+    h+='<input type="text" class="field-input'+(tlWarn?' warn':'')+'" id="tl-inp-'+s.id+'" value="'+(s.torqueLimit>=0?(s.torqueLimit/10.23).toFixed(0):'...')+'" onblur="commitTorqueLimit('+s.id+',this)" onkeydown="if(event.key===\'Enter\')this.blur()">';
+    h+='<span class="field-lbl">%</span></div>';
   }
   h+='</div>';
 
@@ -329,13 +331,13 @@ h+='<div class="limit-marker limit-max" id="lm-max-'+s.id+'" style="left:'+(s.li
   h+='<span class="cfg-status" id="cfg-lim-ok-'+s.id+'">Saved \u2713</span>';
   h+='</div>';
 
-  // Safety config (STS only)
-  if(s.type==='STS'){
+  // Safety config (STS and SC)
+  var isSTS=s.type==='STS';
   h+='<div class="cfg-row" style="margin-top:4px">';
   h+='<div class="field-grp"><span class="field-lbl">Max Torque</span>';
-  h+='<input type="text" class="field-input" id="cfg-maxtorq-'+s.id+'" value="'+(s.maxTorqueEprom>=0?s.maxTorqueEprom:'...')+'">';
-  h+='<span class="field-lbl">/1000</span></div>';
-  h+='<span class="help-btn" tabindex="0">?<span class="help-tip">Hard cap on servo torque output. Not a protection\u2014always enforced.</span></span>';
+  h+='<input type="text" class="field-input" id="cfg-maxtorq-'+s.id+'" value="'+(s.maxTorqueEprom>=0?(s.maxTorqueEprom/10).toFixed(0):'...')+'">';
+  h+='<span class="field-lbl">%</span></div>';
+  h+='<span class="help-btn" tabindex="0">?<span class="help-tip">Hard cap on drive duty cycle. Not a protection\u2014always enforced.</span></span>';
   h+='</div>';
   // Protection header
   h+='<div class="prot-hdr" style="margin-top:6px">';
@@ -369,7 +371,8 @@ h+='<div class="limit-marker limit-max" id="lm-max-'+s.id+'" style="left:'+(s.li
   h+='<input type="checkbox" class="prot-chk" id="led-volt-'+s.id+'">';
   h+='<span class="help-btn" tabindex="0">?<span class="help-tip">Triggers when supply voltage is outside min\u2013max range. Cut is OFF by default (LED only).</span></span>';
   h+='</div>';
-  // Current (bit3=8)
+  // Current (bit3=8) - STS only
+  if(isSTS){
   h+='<div class="prot-row">';
   h+='<span class="prot-lbl">Current</span>';
   h+='<div class="prot-fields">';
@@ -382,22 +385,25 @@ h+='<div class="limit-marker limit-max" id="lm-max-'+s.id+'" style="left:'+(s.li
   h+='<input type="checkbox" class="prot-chk" id="led-cur-'+s.id+'">';
   h+='<span class="help-btn" tabindex="0">?<span class="help-tip">Triggers when motor current exceeds threshold for the given duration. Default 3250mA / 2.0s.</span></span>';
   h+='</div>';
+  }
   // Overload (bit5=32)
+  var timeDiv=isSTS?100:25;
   h+='<div class="prot-row">';
   h+='<span class="prot-lbl">Overload</span>';
   h+='<div class="prot-fields">';
   h+='<input type="text" class="field-input" style="width:38px" id="cfg-overload-'+s.id+'" value="'+(s.overloadTorque>=0?s.overloadTorque:'...')+'">';
   h+='<span class="field-lbl">%</span>';
-  h+='<input type="text" class="field-input" style="width:42px" id="cfg-prottime-'+s.id+'" value="'+(s.protTime>=0?(s.protTime/100).toFixed(1):'...')+'">';
+  h+='<input type="text" class="field-input" style="width:42px" id="cfg-prottime-'+s.id+'" value="'+(s.protTime>=0?(s.protTime/timeDiv).toFixed(1):'...')+'">';
   h+='<span class="field-lbl">s \u2192</span>';
   h+='<input type="text" class="field-input" style="width:38px" id="cfg-prottorq-'+s.id+'" value="'+(s.protTorque>=0?s.protTorque:'...')+'">';
   h+='<span class="field-lbl">%</span>';
   h+='</div>';
   h+='<input type="checkbox" class="prot-chk" id="cut-ol-'+s.id+'">';
   h+='<input type="checkbox" class="prot-chk" id="led-ol-'+s.id+'">';
-  h+='<span class="help-btn" tabindex="0">?<span class="help-tip">If load exceeds threshold % for the duration, torque reduces to lower %. Both are % of max torque.</span></span>';
+  h+='<span class="help-btn" tabindex="0">?<span class="help-tip">If drive duty cycle exceeds threshold % for the duration, output drops to lower %. Both are % of max drive output.</span></span>';
   h+='</div>';
-  // Angle (bit4=16)
+  // Angle (bit4=16) - STS only
+  if(isSTS){
   h+='<div class="prot-row">';
   h+='<span class="prot-lbl">Angle</span>';
   h+='<div class="prot-fields"></div>';
@@ -413,17 +419,17 @@ h+='<div class="limit-marker limit-max" id="lm-max-'+s.id+'" style="left:'+(s.li
   h+='<input type="checkbox" class="prot-chk" id="led-sens-'+s.id+'">';
   h+='<span class="help-btn" tabindex="0">?<span class="help-tip">Triggers if the magnetic encoder sensor has an error.</span></span>';
   h+='</div>';
+  }
   h+='<div class="cfg-row">';
   h+='<button class="cfg-save" onclick="saveSafety('+s.id+')">Save Protection</button>';
   h+='<span class="cfg-status" id="cfg-safety-ok-'+s.id+'"></span>';
   h+='</div>';
-  }
 
   // Set ID
   h+='<div class="cfg-row">';
   h+='<div class="field-grp"><span class="field-lbl">New ID</span>';
   h+='<input type="text" class="field-input" id="cfg-newid-'+s.id+'" value="'+s.id+'"></div>';
-  h+='<button class="cfg-save danger" onclick="saveId('+s.id+')">Set ID</button>';
+  h+='<button class="cfg-save" onclick="saveId('+s.id+')">Set ID</button>';
   h+='<span class="cfg-status" id="cfg-id-ok-'+s.id+'"></span>';
   h+='</div>';
 
@@ -445,8 +451,9 @@ function updateCard(s){
   el=document.getElementById('mode-'+s.id);
   if(el){var isM=(s.mode===3),wasM=(el.textContent==='Motor');el.textContent=isM?'Motor':'Servo';if(isM!==wasM)rebuildCard(s)}
   el=document.getElementById('moving-'+s.id);if(el)el.style.display=(s.speed!==0)?'inline':'none';
+  el=document.getElementById('alarm-'+s.id);if(el){if(s.alarm){var ab=[];if(s.alarm&1)ab.push('VOLT');if(s.alarm&2)ab.push('SENS');if(s.alarm&4)ab.push('TEMP');if(s.alarm&8)ab.push('CUR');if(s.alarm&16)ab.push('ANG');if(s.alarm&32)ab.push('LOAD');el.textContent=ab.join(' ');el.style.display='inline'}else{el.style.display='none'}}
   el=document.getElementById('tv-'+s.id);if(el){el.textContent=fv(s.voltage);el.className=s.voltage<6?'tw':''}
-  el=document.getElementById('tl-'+s.id);if(el){el.textContent=s.load;el.className=Math.abs(s.load)>50?'tw':''}
+  el=document.getElementById('tl-'+s.id);if(el){el.textContent=(s.load/10).toFixed(0)+'%';el.className=Math.abs(s.load)>500?'tw':''}
   el=document.getElementById('tt-'+s.id);if(el){el.textContent=s.temp+'\u00b0';el.className=s.temp>50?'tw':''}
   el=document.getElementById('tc-'+s.id);if(el)el.textContent=s.current;
   el=document.getElementById('tbtn-'+s.id);if(el)el.className='torque-btn '+(s.torque?'torque-on':'torque-off');
@@ -518,8 +525,9 @@ function commitSpeed(id,el){
 
 function commitTorqueLimit(id,el){
   var s=servoById(id);if(!s)return;
-  var v=Math.max(0,Math.min(1023,parseInt(el.value)||0));s.torqueLimit=v;el.value=v;
-  el.className='field-input'+(v===1023?' warn':'');
+  var pct=Math.max(0,Math.min(100,parseFloat(el.value)||0));
+  var v=Math.round(pct*10.23);s.torqueLimit=v;el.value=pct.toFixed(0);
+  el.className='field-input'+(v>=1023?' warn':'');
   api('/api/torque_limit?id='+id+'&value='+v,function(){});
 }
 
@@ -529,7 +537,7 @@ function sendPos(id,pos){var s=servoById(id);var spd=s?s.speedSet:500;var x=new 
 function loadTorqueLimits(){
   for(var i=0;i<servos.length;i++){
     if(servos[i].type==='STS')(function(s){
-      api('/api/torque_limit?id='+s.id,function(d){if(d.value!==undefined){s.torqueLimit=d.value;var el=document.getElementById('tl-inp-'+s.id);if(el){el.value=d.value;el.className='field-input'+(d.value===1023?' warn':'')}}});
+      api('/api/torque_limit?id='+s.id,function(d){if(d.value!==undefined){s.torqueLimit=d.value;var el=document.getElementById('tl-inp-'+s.id);if(el){el.value=(d.value/10.23).toFixed(0);el.className='field-input'+(d.value>=1023?' warn':'')}}});
     })(servos[i]);
   }
 }
@@ -556,7 +564,7 @@ function toggleCfg(id){
   var s=servoById(id);
   if(open&&s){
     if(s.limMin<0)loadAngleLimitsFor(s);
-    if(s.type==='STS'&&!s.safetyLoaded)loadSafetyFor(s);
+    if(!s.safetyLoaded)loadSafetyFor(s);
   }
 }
 function loadAngleLimitsFor(s){
@@ -604,23 +612,28 @@ function saveLimits(id){
 function loadSafetyFor(s){
   api('/api/safety?id='+s.id,function(d){
     if(d.max_temp===undefined)return;
+    var isSTS=s.type==='STS';
+    var timeDiv=isSTS?100:25;
     s.safetyLoaded=true;
     s.maxTemp=d.max_temp;s.maxVoltage=d.max_voltage;s.minVoltage=d.min_voltage;
-    s.maxTorqueEprom=d.max_torque;s.protCurrent=d.prot_current;
+    s.maxTorqueEprom=d.max_torque;
     s.protTorque=d.prot_torque;s.protTime=d.prot_time;s.overloadTorque=d.overload_torque;
-    s.overcurrentTime=d.overcurrent_time;s.unloadBits=d.unload;s.ledBits=d.led_alarm;
+    s.unloadBits=d.unload;s.ledBits=d.led_alarm;
+    if(isSTS){s.protCurrent=d.prot_current;s.overcurrentTime=d.overcurrent_time;}
     var el;
     el=document.getElementById('cfg-maxtemp-'+s.id);if(el)el.value=d.max_temp;
     el=document.getElementById('cfg-minv-'+s.id);if(el)el.value=(d.min_voltage/10).toFixed(1);
     el=document.getElementById('cfg-maxv-'+s.id);if(el)el.value=(d.max_voltage/10).toFixed(1);
-    el=document.getElementById('cfg-maxtorq-'+s.id);if(el)el.value=d.max_torque;
-    el=document.getElementById('cfg-protcur-'+s.id);if(el)el.value=Math.round(d.prot_current*6.5);
-    el=document.getElementById('cfg-overcurtime-'+s.id);if(el)el.value=(d.overcurrent_time/100).toFixed(1);
+    el=document.getElementById('cfg-maxtorq-'+s.id);if(el)el.value=(d.max_torque/10).toFixed(0);
+    if(isSTS){
+      el=document.getElementById('cfg-protcur-'+s.id);if(el)el.value=Math.round(d.prot_current*6.5);
+      el=document.getElementById('cfg-overcurtime-'+s.id);if(el)el.value=(d.overcurrent_time/100).toFixed(1);
+    }
     el=document.getElementById('cfg-overload-'+s.id);if(el)el.value=d.overload_torque;
-    el=document.getElementById('cfg-prottime-'+s.id);if(el)el.value=(d.prot_time/100).toFixed(1);
+    el=document.getElementById('cfg-prottime-'+s.id);if(el)el.value=(d.prot_time/timeDiv).toFixed(1);
     el=document.getElementById('cfg-prottorq-'+s.id);if(el)el.value=d.prot_torque;
     var u=d.unload,l=d.led_alarm;
-    var bits=[['temp',4],['volt',1],['cur',8],['ol',32],['ang',16],['sens',2]];
+    var bits=isSTS?[['temp',4],['volt',1],['cur',8],['ol',32],['ang',16],['sens',2]]:[['temp',4],['volt',1],['ol',32]];
     for(var i=0;i<bits.length;i++){var b=bits[i];
       el=document.getElementById('cut-'+b[0]+'-'+s.id);if(el)el.checked=!!(u&b[1]);
       el=document.getElementById('led-'+b[0]+'-'+s.id);if(el)el.checked=!!(l&b[1]);
@@ -629,22 +642,29 @@ function loadSafetyFor(s){
 }
 function saveSafety(id){
   var s=servoById(id);if(!s)return;
+  var isSTS=s.type==='STS';
+  var timeDiv=isSTS?100:25;
   var mt=parseInt(document.getElementById('cfg-maxtemp-'+id).value)||0;
   var minv=Math.round(parseFloat(document.getElementById('cfg-minv-'+id).value||0)*10);
   var maxv=Math.round(parseFloat(document.getElementById('cfg-maxv-'+id).value||0)*10);
-  var mtq=parseInt(document.getElementById('cfg-maxtorq-'+id).value)||0;
-  var pc=Math.round((parseInt(document.getElementById('cfg-protcur-'+id).value)||0)/6.5);
-  var oct=Math.round(parseFloat(document.getElementById('cfg-overcurtime-'+id).value||0)*100);
+  var mtq=Math.round((parseFloat(document.getElementById('cfg-maxtorq-'+id).value)||0)*10);
   var ol=parseInt(document.getElementById('cfg-overload-'+id).value)||0;
-  var ptm=Math.round(parseFloat(document.getElementById('cfg-prottime-'+id).value||0)*100);
+  var ptm=Math.round(parseFloat(document.getElementById('cfg-prottime-'+id).value||0)*timeDiv);
   var pt=parseInt(document.getElementById('cfg-prottorq-'+id).value)||0;
-  var unload=0,led=0;
-  var bits=[['temp',4],['volt',1],['cur',8],['ol',32],['ang',16],['sens',2]];
-  for(var i=0;i<bits.length;i++){var b=bits[i];
-    if(document.getElementById('cut-'+b[0]+'-'+id).checked)unload|=b[1];
-    if(document.getElementById('led-'+b[0]+'-'+id).checked)led|=b[1];
+  var pc=0,oct=0;
+  if(isSTS){
+    pc=Math.round((parseInt(document.getElementById('cfg-protcur-'+id).value)||0)/6.5);
+    oct=Math.round(parseFloat(document.getElementById('cfg-overcurtime-'+id).value||0)*100);
   }
-  api('/api/safety?id='+id+'&max_temp='+mt+'&max_voltage='+maxv+'&min_voltage='+minv+'&max_torque='+mtq+'&prot_current='+pc+'&prot_torque='+pt+'&prot_time='+ptm+'&overload_torque='+ol+'&overcurrent_time='+oct+'&unload='+unload+'&led_alarm='+led,function(d){
+  var unload=0,led=0;
+  var bits=isSTS?[['temp',4],['volt',1],['cur',8],['ol',32],['ang',16],['sens',2]]:[['temp',4],['volt',1],['ol',32]];
+  for(var i=0;i<bits.length;i++){var b=bits[i];
+    var ce=document.getElementById('cut-'+b[0]+'-'+id);if(ce&&ce.checked)unload|=b[1];
+    var le=document.getElementById('led-'+b[0]+'-'+id);if(le&&le.checked)led|=b[1];
+  }
+  var url='/api/safety?id='+id+'&max_temp='+mt+'&max_voltage='+maxv+'&min_voltage='+minv+'&max_torque='+mtq+'&prot_torque='+pt+'&prot_time='+ptm+'&overload_torque='+ol+'&unload='+unload+'&led_alarm='+led;
+  if(isSTS)url+='&prot_current='+pc+'&overcurrent_time='+oct;
+  api(url,function(d){
     if(d.ok){flashStatus('cfg-safety-ok-'+id,'Saved \u2713');loadSafetyFor(s)}
     else{flashStatus('cfg-safety-ok-'+id,'Error \u2717')}
   });
