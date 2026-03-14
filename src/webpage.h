@@ -507,7 +507,7 @@ function toggleTorque(id){
 
 function quickAction(id,act){
   var s=servoById(id);if(!s)return;
-  if(act==='center'){s.setpoint=s.middle;sendPos(id,s.setpoint);syncUI(id)}
+  if(act==='center'){s.setpoint=(s.limMin>=0&&s.limMax>=0)?Math.round((s.limMin+s.limMax)/2):s.middle;sendPos(id,s.setpoint);syncUI(id)}
   else if(act==='min'){s.setpoint=0;sendPos(id,s.setpoint);syncUI(id)}
   else if(act==='max'){s.setpoint=s.range;sendPos(id,s.setpoint);syncUI(id)}
 
