@@ -215,7 +215,8 @@ function mk(s,old){
     mode:0,torque:true,step:old?old.step:10,setpoint:old?old.setpoint:-1,inited:old?old.inited:false,
     speedSet:old?old.speedSet:500,torqueLimit:old?old.torqueLimit:-1,
     limMin:old?old.limMin:-1,limMax:old?old.limMax:-1,
-    safetyLoaded:false,maxTemp:-1,minVoltage:-1,maxVoltage:-1,maxTorqueEprom:-1,protCurrent:-1,protTorque:-1,protTime:-1,overloadTorque:-1,overcurrentTime:-1,unloadBits:-1,ledBits:-1};
+    safetyLoaded:false,maxTemp:-1,minVoltage:-1,maxVoltage:-1,maxTorqueEprom:-1,protCurrent:-1,protTorque:-1,protTime:-1,overloadTorque:-1,overcurrentTime:-1,unloadBits:-1,ledBits:-1,
+    tuningLoaded:false,pCoeff:-1,dCoeff:-1,iCoeff:-1,minStartForce:-1,cwDead:-1,ccwDead:-1,hysteresis:-1};
 }
 function servoById(id){for(var i=0;i<servos.length;i++)if(servos[i].id===id)return servos[i];return null}
 
@@ -425,6 +426,44 @@ h+='<div class="limit-marker limit-max" id="lm-max-'+s.id+'" style="left:'+(s.li
   h+='<span class="cfg-status" id="cfg-safety-ok-'+s.id+'"></span>';
   h+='</div>';
 
+  // Tuning (PID, dead zones, etc.)
+  h+='<div class="prot-hdr" style="margin-top:10px">';
+  h+='<span class="prot-lbl" style="font-weight:700;color:var(--label)">TUNING</span>';
+  h+='</div>';
+  h+='<div class="cfg-row">';
+  h+='<div class="field-grp"><span class="field-lbl">P</span>';
+  h+='<input type="text" class="field-input" style="width:38px" id="cfg-p-'+s.id+'" value="..."></div>';
+  h+='<div class="field-grp"><span class="field-lbl">I</span>';
+  h+='<input type="text" class="field-input" style="width:38px" id="cfg-i-'+s.id+'" value="..."></div>';
+  h+='<div class="field-grp"><span class="field-lbl">D</span>';
+  h+='<input type="text" class="field-input" style="width:38px" id="cfg-d-'+s.id+'" value="..."></div>';
+  h+='<span class="help-btn" tabindex="0">?<span class="help-tip">Position loop PID gains. Higher P = stiffer response. D damps oscillation. I corrects steady-state error (usually 0).</span></span>';
+  h+='</div>';
+  h+='<div class="cfg-row">';
+  h+='<div class="field-grp"><span class="field-lbl">Min Start Force</span>';
+  h+='<input type="text" class="field-input" style="width:42px" id="cfg-minstart-'+s.id+'" value="...">';
+  h+='<span class="field-lbl">%</span></div>';
+  h+='<span class="help-btn" tabindex="0">?<span class="help-tip">Minimum drive output (0\u2013100%). Below this threshold the motor won\u2019t move. Increase if servo can\u2019t overcome static friction.</span></span>';
+  h+='</div>';
+  h+='<div class="cfg-row">';
+  h+='<div class="field-grp"><span class="field-lbl">CW Dead</span>';
+  h+='<input type="text" class="field-input" style="width:38px" id="cfg-cwdead-'+s.id+'" value="..."></div>';
+  h+='<div class="field-grp"><span class="field-lbl">CCW Dead</span>';
+  h+='<input type="text" class="field-input" style="width:38px" id="cfg-ccwdead-'+s.id+'" value="..."></div>';
+  h+='<span class="help-btn" tabindex="0">?<span class="help-tip">Dead zone in steps for each direction. Motor ignores errors smaller than this. Prevents jitter near target.</span></span>';
+  h+='</div>';
+  if(!isSTS){
+  h+='<div class="cfg-row">';
+  h+='<div class="field-grp"><span class="field-lbl">Hysteresis</span>';
+  h+='<input type="text" class="field-input" style="width:38px" id="cfg-hyst-'+s.id+'" value="..."></div>';
+  h+='<span class="help-btn" tabindex="0">?<span class="help-tip">Position deadband in steps. Prevents oscillation around target. Higher = more stable but less precise.</span></span>';
+  h+='</div>';
+  }
+  h+='<div class="cfg-row">';
+  h+='<button class="cfg-save" onclick="saveTuning('+s.id+')">Save Tuning</button>';
+  h+='<span class="cfg-status" id="cfg-tune-ok-'+s.id+'"></span>';
+  h+='</div>';
+
   // Set ID
   h+='<div class="cfg-row">';
   h+='<div class="field-grp"><span class="field-lbl">New ID</span>';
@@ -565,6 +604,7 @@ function toggleCfg(id){
   if(open&&s){
     if(s.limMin<0)loadAngleLimitsFor(s);
     if(!s.safetyLoaded)loadSafetyFor(s);
+    if(!s.tuningLoaded)loadTuningFor(s);
   }
 }
 function loadAngleLimitsFor(s){
@@ -667,6 +707,41 @@ function saveSafety(id){
   api(url,function(d){
     if(d.ok){flashStatus('cfg-safety-ok-'+id,'Saved \u2713');loadSafetyFor(s)}
     else{flashStatus('cfg-safety-ok-'+id,'Error \u2717')}
+  });
+}
+function loadTuningFor(s){
+  api('/api/tuning?id='+s.id,function(d){
+    if(d.p===undefined)return;
+    s.tuningLoaded=true;
+    s.pCoeff=d.p;s.dCoeff=d.d;s.iCoeff=d.i;
+    s.minStartForce=d.min_start;s.cwDead=d.cw_dead;s.ccwDead=d.ccw_dead;
+    if(d.hysteresis!==undefined)s.hysteresis=d.hysteresis;
+    var el;
+    el=document.getElementById('cfg-p-'+s.id);if(el)el.value=d.p;
+    el=document.getElementById('cfg-d-'+s.id);if(el)el.value=d.d;
+    el=document.getElementById('cfg-i-'+s.id);if(el)el.value=d.i;
+    el=document.getElementById('cfg-minstart-'+s.id);if(el)el.value=(d.min_start/10).toFixed(0);
+    el=document.getElementById('cfg-cwdead-'+s.id);if(el)el.value=d.cw_dead;
+    el=document.getElementById('cfg-ccwdead-'+s.id);if(el)el.value=d.ccw_dead;
+    el=document.getElementById('cfg-hyst-'+s.id);if(el)el.value=d.hysteresis;
+  });
+}
+function saveTuning(id){
+  var s=servoById(id);if(!s)return;
+  var p=parseInt(document.getElementById('cfg-p-'+id).value)||0;
+  var d=parseInt(document.getElementById('cfg-d-'+id).value)||0;
+  var i=parseInt(document.getElementById('cfg-i-'+id).value)||0;
+  var ms=Math.round((parseFloat(document.getElementById('cfg-minstart-'+id).value)||0)*10);
+  var cw=parseInt(document.getElementById('cfg-cwdead-'+id).value)||0;
+  var ccw=parseInt(document.getElementById('cfg-ccwdead-'+id).value)||0;
+  var url='/api/tuning?id='+id+'&p='+p+'&d='+d+'&i='+i+'&min_start='+ms+'&cw_dead='+cw+'&ccw_dead='+ccw;
+  if(s.type!=='STS'){
+    var hyst=parseInt(document.getElementById('cfg-hyst-'+id).value)||0;
+    url+='&hysteresis='+hyst;
+  }
+  api(url,function(d){
+    if(d.ok){flashStatus('cfg-tune-ok-'+id,'Saved \u2713');loadTuningFor(s)}
+    else{flashStatus('cfg-tune-ok-'+id,'Error \u2717')}
   });
 }
 function commitName(id,el){

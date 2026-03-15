@@ -251,6 +251,80 @@ void webCtrlServer(){
     }
   });
 
+  server.on("/api/tuning", [](){
+    if(!server.hasArg("id")){
+      server.send(400, "application/json", "{\"error\":\"missing id\"}");
+      return;
+    }
+    int id = server.arg("id").toInt();
+    if(id < 0 || id > 252 || !servos[id]){
+      server.send(404, "application/json", "{\"error\":\"servo not found\"}");
+      return;
+    }
+    bool is_sts = servos[id]->type() == ServoBusApi::ServoType::STS;
+    if(server.hasArg("p")){
+      bool ok = false;
+      if(is_sts){
+        auto* sts = static_cast<STSServo*>(servos[id]);
+        STSServo::TuningConfig cfg;
+        cfg.p_coefficient = constrain(server.arg("p").toInt(), 0, 254);
+        cfg.d_coefficient = constrain(server.arg("d").toInt(), 0, 254);
+        cfg.i_coefficient = constrain(server.arg("i").toInt(), 0, 254);
+        cfg.min_starting_force = constrain(server.arg("min_start").toInt(), 0, 1000);
+        cfg.cw_dead = constrain(server.arg("cw_dead").toInt(), 0, 32);
+        cfg.ccw_dead = constrain(server.arg("ccw_dead").toInt(), 0, 32);
+        xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
+        ok = sts->write_tuning_config(cfg);
+        xSemaphoreGive(servo_bus_mutex);
+      } else {
+        auto* sc = static_cast<SCServo*>(servos[id]);
+        SCServo::TuningConfig cfg;
+        cfg.p_coefficient = constrain(server.arg("p").toInt(), 0, 254);
+        cfg.d_coefficient = constrain(server.arg("d").toInt(), 0, 254);
+        cfg.i_coefficient = constrain(server.arg("i").toInt(), 0, 254);
+        cfg.min_starting_force = constrain(server.arg("min_start").toInt(), 0, 1000);
+        cfg.cw_dead = constrain(server.arg("cw_dead").toInt(), 0, 32);
+        cfg.ccw_dead = constrain(server.arg("ccw_dead").toInt(), 0, 32);
+        cfg.hysteresis = constrain(server.arg("hysteresis").toInt(), 0, 32);
+        xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
+        ok = sc->write_tuning_config(cfg);
+        xSemaphoreGive(servo_bus_mutex);
+      }
+      if(ok) server.send(200, "application/json", "{\"ok\":true}");
+      else server.send(500, "application/json", "{\"error\":\"write failed\"}");
+    } else {
+      String json = "{";
+      if(is_sts){
+        auto* sts = static_cast<STSServo*>(servos[id]);
+        xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
+        auto cfg = sts->read_tuning_config();
+        xSemaphoreGive(servo_bus_mutex);
+        if(!cfg){ server.send(500, "application/json", "{\"error\":\"read failed\"}"); return; }
+        json += "\"p\":" + String(cfg->p_coefficient);
+        json += ",\"d\":" + String(cfg->d_coefficient);
+        json += ",\"i\":" + String(cfg->i_coefficient);
+        json += ",\"min_start\":" + String(cfg->min_starting_force);
+        json += ",\"cw_dead\":" + String(cfg->cw_dead);
+        json += ",\"ccw_dead\":" + String(cfg->ccw_dead);
+      } else {
+        auto* sc = static_cast<SCServo*>(servos[id]);
+        xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
+        auto cfg = sc->read_tuning_config();
+        xSemaphoreGive(servo_bus_mutex);
+        if(!cfg){ server.send(500, "application/json", "{\"error\":\"read failed\"}"); return; }
+        json += "\"p\":" + String(cfg->p_coefficient);
+        json += ",\"d\":" + String(cfg->d_coefficient);
+        json += ",\"i\":" + String(cfg->i_coefficient);
+        json += ",\"min_start\":" + String(cfg->min_starting_force);
+        json += ",\"cw_dead\":" + String(cfg->cw_dead);
+        json += ",\"ccw_dead\":" + String(cfg->ccw_dead);
+        json += ",\"hysteresis\":" + String(cfg->hysteresis);
+      }
+      json += "}";
+      server.send(200, "application/json", json);
+    }
+  });
+
   server.on("/api/safety", [](){
     if(!server.hasArg("id")){
       server.send(400, "application/json", "{\"error\":\"missing id\"}");
