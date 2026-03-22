@@ -68,6 +68,7 @@ bool searchFinished = false;
 bool searchCmd      = false;
 byte activeNumInList = 0;
 int16_t activeServoSpeed = 100;
+bool feedback_include_speed = false;
 
 
 // ----------- Core functions -----------
@@ -104,8 +105,10 @@ void getFeedBack(byte servoID) {
   auto goal = s->read_goal_position();
   if (goal) goalRead[servoID] = *goal;
 
-  auto spd = s->read_speed();
-  if (spd) speedRead[servoID] = *spd;
+  if (feedback_include_speed) {
+    auto spd = s->read_speed();
+    if (spd) speedRead[servoID] = *spd;
+  }
 
   auto load = s->read_load();
   if (load) loadRead[servoID] = *load;
@@ -127,6 +130,21 @@ void getFeedBack(byte servoID) {
 
   auto alarm = s->read_alarm_status();
   if (alarm) alarmRead[servoID] = *alarm;
+  xSemaphoreGive(servo_bus_mutex);
+}
+
+
+void getFeedBackFast(byte servoID) {
+  auto* s = servoForId(servoID);
+
+  xSemaphoreTake(servo_bus_mutex, portMAX_DELAY);
+  auto pos = s->read_encoder_angle();
+  if (pos) posRead[servoID] = *pos;
+
+  if (feedback_include_speed) {
+    auto spd = s->read_speed();
+    if (spd) speedRead[servoID] = *spd;
+  }
   xSemaphoreGive(servo_bus_mutex);
 }
 
