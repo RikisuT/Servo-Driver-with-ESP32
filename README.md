@@ -1,4 +1,4 @@
-# Servo-Driver-with-ESP32
+# Servo-Driver-with-ESP32 Advanced
 
 ### Fork and Credits:
 
@@ -39,7 +39,7 @@ git commit -m "chore: bump nerd-bus-servo"
 
 ### Description:
 
-The Web app example for Servo Driver with ESP32.
+An enhanced Servo Driver with ESP32 fork with expanded APIs, richer web UI controls, mixed SC/STS support, and additional configuration workflows beyond the original upstream projects.
 
 ### Website:
 
