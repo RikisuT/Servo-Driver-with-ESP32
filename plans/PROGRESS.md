@@ -30,6 +30,14 @@ Never skip testing to "save time." A 30-second hardware test catches issues that
 - [x] Identify threading model and thread-safety issues
 - [x] Produce [PROTOCOL.md](PROTOCOL.md)
 
+## Repo Maintenance ✅ COMPLETE
+
+- [x] 2026-03-22: `origin` confirmed as `https://github.com/RikisuT/Servo-Driver-with-ESP32` for fetch/push
+- [x] 2026-03-22: `upstream` moved to Waveshare (`https://github.com/waveshare/Servo-Driver-with-ESP32`) to avoid tracking berickson fork updates directly
+- [x] 2026-03-22: Added fork/credit note in README for Waveshare origin + berickson contributions
+- [x] 2026-03-22: Added `berickson` remote as fetch-only source (`push = DISABLED`) for selective sync only
+- [x] 2026-03-22: Documented pinned `lib/nerd-bus-servo` submodule policy in README (no automatic dependency drift)
+
 ### Key Findings for All Agents
 
 1. **Mixed servo support required:** The user has both SC-series and STS-series servos and may use them interchangeably or simultaneously on the same bus. This is handled by the **nerd-bus-servo** library (see below).
